@@ -5,10 +5,6 @@
   },
   "routes": [
     {
-      "route": "/api/*",
-      "allowedRoles": ["anonymous", "authenticated"]
-    },
-    {
       "route": "/api/projects",
       "methods": ["POST"],
       "allowedRoles": ["authenticated"]
@@ -37,6 +33,10 @@
       "route": "/api/projects/*",
       "methods": ["DELETE"],
       "allowedRoles": ["authenticated"]
+    },
+    {
+      "route": "/api/*",
+      "allowedRoles": ["anonymous", "authenticated"]
     }
   ],
   "auth": {
