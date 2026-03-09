@@ -1,0 +1,378 @@
+import React, { useEffect, useState, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
+import {
+  listCollections,
+  createCollection,
+  deleteCollection,
+  getCollection,
+  listMyProjects,
+  removeProjectFromCollection,
+  updateCollection,
+} from "../api/client";
+import {
+  Spinner,
+  Button,
+  Dialog,
+  DialogSurface,
+  DialogTitle,
+  DialogBody,
+  DialogActions,
+  DialogContent,
+  Input,
+  Textarea,
+  Field,
+} from "@fluentui/react-components";
+import { ProjectCard } from "../components/ProjectCard";
+import type { CollectionSummary, ProjectSummary } from "../components/types";
+import type { ProjectCardVariant } from "../components/ProjectCard";
+import "./Collections.css";
+
+/* ── Collection card ── */
+const CollectionCard: React.FC<{
+  collection: CollectionSummary;
+  projects: ProjectSummary[];
+  onClick: () => void;
+}> = ({ collection, projects, onClick }) => {
+  const thumbProjects = projects
+    .filter((p) => collection.projectIds.includes(p.id))
+    .slice(0, 4);
+  const remaining = collection.projectIds.length - thumbProjects.length;
+
+  return (
+    <div className="abh-collection-card" onClick={onClick} role="button" tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
+      aria-label={`Collection: ${collection.name}`}
+    >
+      {thumbProjects.length > 0 && (
+        <div className="abh-collection-card__thumbnails">
+          {thumbProjects.map((p) => (
+            <div key={p.id} className="abh-collection-card__thumb">
+              {p.thumbnailUrl ? (
+                <img src={p.thumbnailUrl} alt={p.name} loading="lazy" />
+              ) : null}
+            </div>
+          ))}
+          {remaining > 0 && (
+            <div className="abh-collection-card__thumb-more">+{remaining}</div>
+          )}
+        </div>
+      )}
+      <h3 className="abh-collection-card__name">{collection.name}</h3>
+      {collection.description && (
+        <p className="abh-collection-card__description">{collection.description}</p>
+      )}
+      <div className="abh-collection-card__meta">
+        <span>{collection.projectIds.length} project{collection.projectIds.length !== 1 ? "s" : ""}</span>
+      </div>
+    </div>
+  );
+};
+
+/* ── Main page ── */
+export const Collections: React.FC = () => {
+  const { user, login } = useAuth();
+  const navigate = useNavigate();
+  const { collectionId } = useParams<{ collectionId?: string }>();
+
+  const [collections, setCollections] = useState<CollectionSummary[]>([]);
+  const [allProjects, setAllProjects] = useState<ProjectSummary[]>([]);
+  const [activeCollection, setActiveCollection] = useState<CollectionSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Create dialog
+  const [showCreate, setShowCreate] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  // Edit dialog
+  const [showEdit, setShowEdit] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [viewMode, setViewMode] = useState<ProjectCardVariant>("grid");
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [cols, projs] = await Promise.all([listCollections(), listMyProjects()]);
+      setCollections(cols);
+      setAllProjects(projs);
+
+      if (collectionId) {
+        const col = cols.find((c) => c.id === collectionId);
+        if (col) {
+          setActiveCollection(col);
+        } else {
+          // Try fetching directly
+          try {
+            const fetched = await getCollection(collectionId);
+            setActiveCollection(fetched);
+          } catch {
+            setActiveCollection(null);
+          }
+        }
+      } else {
+        setActiveCollection(null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load collections");
+    } finally {
+      setLoading(false);
+    }
+  }, [collectionId]);
+
+  useEffect(() => {
+    if (user) fetchData();
+    else setLoading(false);
+  }, [user, fetchData]);
+
+  const handleCreate = async () => {
+    if (!newName.trim()) return;
+    setCreating(true);
+    try {
+      const created = await createCollection({ name: newName.trim(), description: newDesc.trim() });
+      setCollections((prev) => [created, ...prev]);
+      setShowCreate(false);
+      setNewName("");
+      setNewDesc("");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Delete this collection? Projects inside won't be affected.")) return;
+    await deleteCollection(id);
+    if (collectionId === id) {
+      navigate("/collections");
+    }
+    fetchData();
+  };
+
+  const handleRemoveProject = async (projectId: string) => {
+    if (!activeCollection) return;
+    await removeProjectFromCollection(activeCollection.id, projectId);
+    fetchData();
+  };
+
+  const handleEdit = async () => {
+    if (!activeCollection || !editName.trim()) return;
+    await updateCollection(activeCollection.id, { name: editName.trim(), description: editDesc.trim() });
+    fetchData();
+    setShowEdit(false);
+  };
+
+  const openEdit = () => {
+    if (!activeCollection) return;
+    setEditName(activeCollection.name);
+    setEditDesc(activeCollection.description);
+    setShowEdit(true);
+  };
+
+  if (!user) {
+    return (
+      <div className="abh-collections">
+        <div className="abh-collections__empty">
+          <h3>Sign in to view your collections</h3>
+          <p>Organize your projects into collections, like playlists.</p>
+          <Button appearance="primary" onClick={login}>Sign in with Microsoft</Button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Detail view ── */
+  if (activeCollection) {
+    const collectionProjects = allProjects.filter((p) =>
+      activeCollection.projectIds.includes(p.id)
+    );
+
+    return (
+      <div className="abh-collections">
+        <button className="abh-collections__back" onClick={() => navigate("/collections")}>
+          ← Collections
+        </button>
+
+        <div className="abh-collections__detail-header">
+          <div>
+            <h1 className="abh-collections__title">{activeCollection.name}</h1>
+            {activeCollection.description && (
+              <p className="abh-collections__subtitle">{activeCollection.description}</p>
+            )}
+            <p className="abh-collections__subtitle">
+              {activeCollection.projectIds.length} project{activeCollection.projectIds.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <div className="abh-collections__detail-actions">
+            <div className="abh-collections__view-toggle" role="radiogroup" aria-label="View mode">
+              <button
+                className={`abh-collections__view-btn ${viewMode === "grid" ? "abh-collections__view-btn--active" : ""}`}
+                onClick={() => setViewMode("grid")}
+                role="radio"
+                aria-checked={viewMode === "grid"}
+                aria-label="Grid view"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                  <rect x="1" y="1" width="6" height="6" rx="1" />
+                  <rect x="9" y="1" width="6" height="6" rx="1" />
+                  <rect x="1" y="9" width="6" height="6" rx="1" />
+                  <rect x="9" y="9" width="6" height="6" rx="1" />
+                </svg>
+              </button>
+              <button
+                className={`abh-collections__view-btn ${viewMode === "compact" ? "abh-collections__view-btn--active" : ""}`}
+                onClick={() => setViewMode("compact")}
+                role="radio"
+                aria-checked={viewMode === "compact"}
+                aria-label="List view"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                  <rect x="1" y="1" width="14" height="3" rx="1" />
+                  <rect x="1" y="6" width="14" height="3" rx="1" />
+                  <rect x="1" y="11" width="14" height="3" rx="1" />
+                </svg>
+              </button>
+            </div>
+            <Button appearance="subtle" onClick={openEdit}>Edit</Button>
+            <Button appearance="subtle" onClick={() => handleDelete(activeCollection.id)}>Delete</Button>
+          </div>
+        </div>
+
+        {collectionProjects.length === 0 ? (
+          <div className="abh-collections__empty">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+              <rect x="6" y="14" width="36" height="24" rx="3" stroke="#d1d1d1" strokeWidth="2" fill="none" />
+              <rect x="10" y="10" width="28" height="4" rx="2" stroke="#d1d1d1" strokeWidth="1.5" fill="none" />
+            </svg>
+            <h3>This collection is empty</h3>
+            <p>Add projects from the project detail page.</p>
+            <Button appearance="primary" onClick={() => navigate("/my-projects")}>Browse Projects</Button>
+          </div>
+        ) : (
+          <div className={viewMode === "compact" ? "abh-collections__project-list" : "abh-collections__project-grid"}>
+            {collectionProjects.map((project) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onClick={(id) => navigate(`/projects/${id}`)}
+                onStar={() => handleRemoveProject(project.id)}
+                variant={viewMode}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Edit dialog */}
+        <Dialog open={showEdit} onOpenChange={(_, data) => setShowEdit(data.open)}>
+          <DialogSurface>
+            <DialogBody>
+              <DialogTitle>Edit Collection</DialogTitle>
+              <DialogContent>
+                <div className="abh-collections__form">
+                  <Field label="Name" required>
+                    <Input value={editName} onChange={(_, d) => setEditName(d.value)} />
+                  </Field>
+                  <Field label="Description">
+                    <Textarea value={editDesc} onChange={(_, d) => setEditDesc(d.value)} rows={2} />
+                  </Field>
+                </div>
+              </DialogContent>
+              <DialogActions>
+                <Button appearance="secondary" onClick={() => setShowEdit(false)}>Cancel</Button>
+                <Button appearance="primary" onClick={handleEdit} disabled={!editName.trim()}>Save</Button>
+              </DialogActions>
+            </DialogBody>
+          </DialogSurface>
+        </Dialog>
+      </div>
+    );
+  }
+
+  /* ── Collection list view ── */
+  return (
+    <div className="abh-collections">
+      <div className="abh-collections__header">
+        <div>
+          <h1 className="abh-collections__title">Collections</h1>
+          <p className="abh-collections__subtitle">
+            {collections.length} collection{collections.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+        <Button appearance="primary" onClick={() => setShowCreate(true)}>
+          + New Collection
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="abh-collections__loading">
+          <Spinner size="medium" label="Loading collections…" />
+        </div>
+      ) : error ? (
+        <div className="abh-collections__error">
+          <p>{error}</p>
+          <button onClick={fetchData}>Retry</button>
+        </div>
+      ) : collections.length === 0 ? (
+        <div className="abh-collections__empty">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <rect x="6" y="14" width="36" height="24" rx="3" stroke="#d1d1d1" strokeWidth="2" fill="none" />
+            <rect x="10" y="10" width="28" height="4" rx="2" stroke="#d1d1d1" strokeWidth="1.5" fill="none" />
+          </svg>
+          <h3>No collections yet</h3>
+          <p>Create a collection to organize your projects, like a playlist.</p>
+          <Button appearance="primary" onClick={() => setShowCreate(true)}>
+            Create your first collection
+          </Button>
+        </div>
+      ) : (
+        <div className="abh-collections__grid">
+          {collections.map((col) => (
+            <CollectionCard
+              key={col.id}
+              collection={col}
+              projects={allProjects}
+              onClick={() => navigate(`/collections/${col.id}`)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Create dialog */}
+      <Dialog open={showCreate} onOpenChange={(_, data) => setShowCreate(data.open)}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>New Collection</DialogTitle>
+            <DialogContent>
+              <div className="abh-collections__form">
+                <Field label="Name" required>
+                  <Input
+                    placeholder="e.g. Portal Core Pages"
+                    value={newName}
+                    onChange={(_, d) => setNewName(d.value)}
+                  />
+                </Field>
+                <Field label="Description">
+                  <Textarea
+                    placeholder="What's this collection about?"
+                    value={newDesc}
+                    onChange={(_, d) => setNewDesc(d.value)}
+                    rows={2}
+                  />
+                </Field>
+              </div>
+            </DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" onClick={() => setShowCreate(false)}>Cancel</Button>
+              <Button appearance="primary" onClick={handleCreate} disabled={!newName.trim() || creating}>
+                {creating ? "Creating…" : "Create"}
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+    </div>
+  );
+};

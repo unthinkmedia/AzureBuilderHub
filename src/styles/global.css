@@ -1,0 +1,110 @@
+:root {
+  --abh-sidebar-width: 240px;
+  --abh-header-height: 48px;
+
+  /* Fluent-aligned neutrals */
+  --colorNeutralBackground1: #ffffff;
+  --colorNeutralBackground2: #fafafa;
+  --colorNeutralBackground3: #f5f5f5;
+  --colorNeutralBackground4: #ebebeb;
+  --colorNeutralForeground1: #242424;
+  --colorNeutralForeground2: #616161;
+  --colorNeutralForeground3: #9e9e9e;
+  --colorNeutralStroke1: #d1d1d1;
+  --colorNeutralStroke2: #e0e0e0;
+  --colorBrandBackground: #0078d4;
+  --colorBrandBackground2: #ebf3fc;
+  --colorBrandForeground1: #0078d4;
+  --colorBrandStroke1: #0078d4;
+
+  /* Additional neutral / palette */
+  --colorNeutralForeground4: #b3b3b3;
+  --colorNeutralForegroundOnBrand: #ffffff;
+  --colorNeutralBackground5: #e0e0e0;
+  --colorNeutralBackground1Hover: #f5f5f5;
+  --colorBrandBackgroundHover: #106ebe;
+  --colorBrandBackgroundSelected: #004577;
+  --colorBrandForeground1Hover: #106ebe;
+  --colorBrandBackground2Hover: #cfe4fa;
+  --colorNeutralStroke1Hover: #c1c1c1;
+  --colorPaletteGreenBackground1: #dff6dd;
+  --colorPaletteGreenForeground1: #107c10;
+  --colorPaletteRedForeground1: #d13438;
+  --colorPaletteRedBackground1: #fdf3f4;
+  --colorPaletteRedBackground3: #d13438;
+  --colorPaletteRedBorder1: #eeacb2;
+  --colorPaletteYellowForeground1: #e3a400;
+
+  /* Typography */
+  --fontFamilyBase: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  --fontFamilyMonospace: "Cascadia Code", "Consolas", monospace;
+  --fontSizeBase100: 10px;
+  --fontSizeBase200: 12px;
+  --fontSizeBase300: 14px;
+  --fontSizeBase400: 16px;
+  --fontSizeBase500: 20px;
+  --fontSizeBase600: 24px;
+  --fontSizeHero700: 28px;
+  --fontSizeHero800: 32px;
+  --fontWeightRegular: 400;
+  --fontWeightMedium: 500;
+  --fontWeightSemibold: 600;
+  --fontWeightBold: 700;
+  --lineHeightBase300: 20px;
+  --lineHeightBase400: 22px;
+
+  /* Spacing */
+  --spacingHorizontalXS: 4px;
+  --spacingHorizontalS: 8px;
+  --spacingHorizontalM: 12px;
+  --spacingHorizontalL: 16px;
+  --spacingHorizontalXL: 20px;
+  --spacingHorizontalXXL: 24px;
+  --spacingVerticalXS: 4px;
+  --spacingVerticalS: 8px;
+  --spacingVerticalM: 12px;
+  --spacingVerticalL: 16px;
+  --spacingVerticalXL: 20px;
+  --spacingVerticalXXL: 24px;
+
+  /* Border radius */
+  --borderRadiusSmall: 2px;
+  --borderRadiusMedium: 4px;
+  --borderRadiusLarge: 8px;
+  --borderRadiusXLarge: 12px;
+  --borderRadiusCircular: 50%;
+
+  /* Shadow */
+  --shadow2: 0 1px 2px rgba(0, 0, 0, 0.12);
+  --shadow4: 0 2px 4px rgba(0, 0, 0, 0.14);
+  --shadow8: 0 4px 8px rgba(0, 0, 0, 0.14);
+  --shadow16: 0 8px 16px rgba(0, 0, 0, 0.14);
+  --shadow28: 0 14px 28px rgba(0, 0, 0, 0.25);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  font-family: var(--fontFamilyBase);
+  color: var(--colorNeutralForeground1);
+  background: var(--colorNeutralBackground2);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--colorBrandForeground1);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}

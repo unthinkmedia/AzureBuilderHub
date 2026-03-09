@@ -1,0 +1,10 @@
+{
+  "managedFolders": [
+    "skill-creator"
+  ],
+  "manualFolders": [
+    "component-audit",
+    "hub-builder",
+    "iconcloud-browser"
+  ]
+}

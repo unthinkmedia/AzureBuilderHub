@@ -1,0 +1,53 @@
+.abh-fork-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacingHorizontalXS, 4px);
+  padding: var(--spacingVerticalXS, 4px) var(--spacingHorizontalS, 8px);
+  background: var(--colorNeutralBackground4, #ebebeb);
+  border-radius: var(--borderRadiusMedium, 4px);
+  font-size: var(--fontSizeBase200, 12px);
+  color: var(--colorNeutralForeground2, #616161);
+  line-height: var(--lineHeightBase200, 16px);
+}
+
+.abh-fork-banner__icon {
+  flex-shrink: 0;
+  color: var(--colorNeutralForeground3, #9e9e9e);
+}
+
+.abh-fork-banner__text {
+  display: inline;
+}
+
+.abh-fork-banner__link {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--colorBrandForeground1, #0078d4);
+  font-size: inherit;
+  font-family: var(--fontFamilyBase);
+  font-weight: var(--fontWeightSemibold, 600);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.abh-fork-banner__link:hover {
+  text-decoration: underline;
+}
+
+.abh-fork-banner__link:focus-visible {
+  outline: 2px solid var(--colorBrandStroke1, #0078d4);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.abh-fork-banner__unavailable {
+  font-style: italic;
+  color: var(--colorNeutralForeground3, #9e9e9e);
+}
+
+.abh-fork-banner__author {
+  font-weight: var(--fontWeightSemibold, 600);
+  color: var(--colorNeutralForeground1, #242424);
+}

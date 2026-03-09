@@ -1,0 +1,66 @@
+.abh-new {
+  display: flex;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.abh-new__card {
+  width: 100%;
+  max-width: 560px;
+  background: var(--colorNeutralBackground1, #ffffff);
+  border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+  border-radius: var(--borderRadiusLarge);
+  padding: 32px;
+}
+
+.abh-new__title {
+  font-size: var(--fontSizeBase600);
+  font-weight: var(--fontWeightSemibold);
+  margin: 0;
+  color: var(--colorNeutralForeground1, #242424);
+}
+
+.abh-new__subtitle {
+  font-size: var(--fontSizeBase300);
+  color: var(--colorNeutralForeground2, #616161);
+  margin: 4px 0 24px;
+}
+
+.abh-new__form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.abh-new__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+
+.abh-new__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+
+/* Auth gate */
+.abh-new__auth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+  gap: 16px;
+}
+
+.abh-new__auth h2 {
+  margin: 0;
+  color: var(--colorNeutralForeground1, #242424);
+}
+
+

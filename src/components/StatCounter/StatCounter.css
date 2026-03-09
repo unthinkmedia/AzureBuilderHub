@@ -1,0 +1,36 @@
+.abh-stat-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacingHorizontalXS, 4px);
+  color: var(--colorNeutralForeground2, #616161);
+  font-family: var(--fontFamilyBase);
+  white-space: nowrap;
+}
+
+.abh-stat-counter--small {
+  font-size: var(--fontSizeBase200, 12px);
+  line-height: var(--lineHeightBase200, 16px);
+}
+
+.abh-stat-counter--small .abh-stat-counter__icon {
+  font-size: 12px;
+}
+
+.abh-stat-counter--medium {
+  font-size: var(--fontSizeBase300, 14px);
+  line-height: var(--lineHeightBase300, 20px);
+}
+
+.abh-stat-counter--medium .abh-stat-counter__icon {
+  font-size: 16px;
+}
+
+.abh-stat-counter__icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.abh-stat-counter__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--fontWeightSemibold, 600);
+}

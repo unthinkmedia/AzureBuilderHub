@@ -1,0 +1,10 @@
+/* Confirmation dialog styles */
+.abh-status-toggle__dialog-confirm--unpublish:hover {
+  background: var(--colorPaletteRedForeground1, #bc2f32);
+}
+
+.abh-status-toggle__dialog-confirm:focus-visible,
+.abh-status-toggle__dialog-cancel:focus-visible {
+  outline: 2px solid var(--colorBrandStroke1, #0078d4);
+  outline-offset: 2px;
+}

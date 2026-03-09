@@ -1,0 +1,240 @@
+/* Card container — Fluent Card handles surface, border-radius, shadow, focus ring */
+.abh-project-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0 !important;
+  height: 100%;
+}
+
+/* Thumbnail — flush to card edges, clipped to card border-radius */
+.abh-project-card__thumbnail {
+  position: relative;
+  height: 140px;
+  background: var(--colorNeutralBackground3, #f5f5f5);
+  overflow: hidden;
+  border-bottom: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+}
+
+.abh-project-card__thumbnail img {
+  width: 100%;
+  display: block;
+}
+
+.abh-project-card__thumbnail-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--colorNeutralForeground3, #9e9e9e);
+  font-size: var(--fontSizeBase200, 12px);
+}
+
+/* Status badge — positioned over thumbnail */
+.abh-project-card .abh-project-card__badge {
+  position: absolute;
+  top: var(--spacingVerticalS, 8px);
+  right: var(--spacingHorizontalS, 8px);
+}
+
+/* Content body — pad inner sections to match Fluent Card's 12px */
+.abh-project-card > :not(.abh-project-card__thumbnail) {
+  margin-left: var(--spacingHorizontalM, 12px);
+  margin-right: var(--spacingHorizontalM, 12px);
+}
+
+/* CardHeader already has internal padding from Fluent — reset our margin */
+.abh-project-card > [class*="CardHeader"] {
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: var(--spacingHorizontalM, 12px);
+  padding-right: var(--spacingHorizontalM, 12px);
+}
+
+/* Description clamp */
+.abh-project-card__description {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Tags */
+.abh-project-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.abh-project-card__tag--overflow {
+  color: var(--colorNeutralForeground3, #9e9e9e);
+}
+
+/* Footer — fixed at bottom of card */
+.abh-project-card > [class*="CardFooter"] {
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: auto;
+  padding: var(--spacingVerticalS, 8px) var(--spacingHorizontalM, 12px);
+  border-top: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+}
+
+.abh-project-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.abh-project-card__footer-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacingHorizontalM, 12px);
+}
+
+.abh-project-card__footer-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacingHorizontalS, 8px);
+}
+
+/* Active star color */
+.abh-project-card__star-btn--active {
+  color: var(--colorPaletteYellowForeground1, #e3a400);
+}
+
+/* ── Compact variant ── */
+.abh-project-card--compact {
+  flex-direction: row !important;
+  padding: var(--spacingVerticalS, 8px) var(--spacingHorizontalM, 12px) !important;
+  gap: var(--spacingHorizontalM, 12px);
+  align-items: center;
+}
+
+.abh-project-card--compact > :not(.abh-project-card__compact-thumb) {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.abh-project-card__compact-thumb {
+  width: 80px;
+  min-width: 80px;
+  height: 52px;
+  border-radius: var(--borderRadiusSmall, 4px);
+  overflow: hidden;
+  background: var(--colorNeutralBackground3, #f5f5f5);
+  flex-shrink: 0;
+}
+
+.abh-project-card__compact-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.abh-project-card__compact-thumb .abh-project-card__thumbnail-placeholder {
+  height: 100%;
+  font-size: var(--fontSizeBase100, 10px);
+}
+
+.abh-project-card__compact-body {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--spacingHorizontalL, 16px);
+  min-width: 0;
+}
+
+.abh-project-card__compact-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.abh-project-card__compact-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacingHorizontalS, 8px);
+}
+
+.abh-project-card__compact-meta {
+  color: var(--colorNeutralForeground2, #616161);
+}
+
+.abh-project-card__compact-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--colorNeutralForeground2, #616161);
+}
+
+.abh-project-card__compact-end {
+  display: flex;
+  align-items: center;
+  gap: var(--spacingHorizontalM, 12px);
+  flex-shrink: 0;
+}
+
+/* ── Collection Submenu (Spotify-style) ── */
+.abh-collection-submenu {
+  min-width: 220px;
+  max-height: 320px;
+  display: flex;
+  flex-direction: column;
+}
+
+.abh-collection-submenu__search {
+  padding: var(--spacingVerticalXS, 4px) var(--spacingHorizontalS, 8px);
+  border-bottom: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+}
+
+.abh-collection-submenu__search input {
+  width: 100%;
+}
+
+.abh-collection-submenu .fui-MenuList {
+  overflow-y: auto;
+  max-height: 260px;
+}
+
+.abh-collection-submenu__create-form {
+  display: flex;
+  gap: var(--spacingHorizontalXS, 4px);
+  padding: var(--spacingVerticalXS, 4px) var(--spacingHorizontalS, 8px);
+  align-items: center;
+}
+
+.abh-collection-submenu__create-form input {
+  flex: 1;
+}
+
+.abh-collection-submenu__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: var(--spacingHorizontalS, 8px);
+}
+
+.abh-collection-submenu__item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.abh-collection-submenu__item-count {
+  color: var(--colorNeutralForeground3, #9e9e9e);
+  flex-shrink: 0;
+}
+
+.abh-collection-submenu__empty {
+  padding: var(--spacingVerticalM, 12px) var(--spacingHorizontalM, 12px);
+  text-align: center;
+  color: var(--colorNeutralForeground3, #9e9e9e);
+}

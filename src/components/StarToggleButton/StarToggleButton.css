@@ -1,0 +1,53 @@
+.abh-star-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacingHorizontalXS, 4px);
+  padding: var(--spacingVerticalXS, 4px) var(--spacingHorizontalS, 8px);
+  border: 1px solid var(--colorNeutralStroke1, #d1d1d1);
+  border-radius: var(--borderRadiusMedium, 4px);
+  background: var(--colorNeutralBackground1, #ffffff);
+  color: var(--colorNeutralForeground2, #616161);
+  cursor: pointer;
+  font-family: var(--fontFamilyBase);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.abh-star-toggle:hover:not(:disabled) {
+  border-color: var(--colorPaletteYellowBorder1, #e3a400);
+  background: var(--colorPaletteYellowBackground1, #fff9e6);
+}
+
+.abh-star-toggle--active {
+  border-color: var(--colorPaletteYellowBorder1, #e3a400);
+  background: var(--colorPaletteYellowBackground1, #fff9e6);
+  color: var(--colorPaletteYellowForeground1, #e3a400);
+}
+
+.abh-star-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.abh-star-toggle:focus-visible {
+  outline: 2px solid var(--colorBrandStroke1, #0078d4);
+  outline-offset: 2px;
+}
+
+.abh-star-toggle--small {
+  padding: 2px 6px;
+  font-size: var(--fontSizeBase200, 12px);
+}
+
+.abh-star-toggle--medium {
+  font-size: var(--fontSizeBase300, 14px);
+}
+
+.abh-star-toggle__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.abh-star-toggle__count {
+  font-weight: var(--fontWeightSemibold, 600);
+  font-variant-numeric: tabular-nums;
+}

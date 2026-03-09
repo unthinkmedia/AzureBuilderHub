@@ -1,0 +1,191 @@
+.abh-library {
+  padding: 24px 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.abh-library__header {
+  margin-bottom: 24px;
+}
+
+.abh-library__title {
+  font-size: var(--fontSizeBase600);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorNeutralForeground1, #242424);
+  margin: 0;
+}
+
+.abh-library__subtitle {
+  font-size: var(--fontSizeBase300);
+  color: var(--colorNeutralForeground2, #616161);
+  margin: 4px 0 0;
+}
+
+/* Tabs */
+.abh-library__tabs {
+  margin-bottom: 24px;
+}
+
+/* Tab content */
+.abh-library__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.abh-library__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.abh-library__section-title {
+  font-size: var(--fontSizeBase400);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorNeutralForeground1, #242424);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.abh-library__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--borderRadiusCircular);
+  background: var(--colorNeutralBackground3, #f5f5f5);
+  color: var(--colorNeutralForeground2, #616161);
+  font-size: var(--fontSizeBase200);
+  font-weight: var(--fontWeightRegular);
+}
+
+/* Project list items */
+.abh-library__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.abh-library__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground2, #fafafa);
+  border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.abh-library__item:hover {
+  background: var(--colorNeutralBackground3, #f5f5f5);
+  border-color: var(--colorNeutralStroke1, #d1d1d1);
+}
+
+.abh-library__item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.abh-library__item-name {
+  font-size: var(--fontSizeBase300);
+  font-weight: var(--fontWeightMedium);
+  color: var(--colorNeutralForeground1, #242424);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.abh-library__item-info:hover .abh-library__item-name {
+  color: var(--colorBrandForeground1, #0078d4);
+  text-decoration: underline;
+}
+
+.abh-library__item-meta {
+  font-size: var(--fontSizeBase200);
+  color: var(--colorNeutralForeground3, #707070);
+}
+
+.abh-library__item-desc {
+  font-size: var(--fontSizeBase200);
+  color: var(--colorNeutralForeground2, #616161);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.abh-library__item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Following card grid */
+.abh-library__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+/* Empty state */
+.abh-library__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  gap: 8px;
+}
+
+.abh-library__empty-icon {
+  color: var(--colorNeutralForeground4, #bdbdbd);
+  margin-bottom: 8px;
+}
+
+.abh-library__empty h3 {
+  margin: 0;
+  font-size: var(--fontSizeBase400);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorNeutralForeground1, #242424);
+}
+
+.abh-library__empty p {
+  color: var(--colorNeutralForeground2, #616161);
+  font-size: var(--fontSizeBase300);
+  margin: 0;
+}
+
+/* Loading */
+.abh-library__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+}
+
+/* Stats in following items */
+.abh-library__item-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--fontSizeBase200);
+  color: var(--colorNeutralForeground3, #707070);
+}
+
+.abh-library__stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

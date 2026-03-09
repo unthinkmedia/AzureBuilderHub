@@ -1,0 +1,92 @@
+.abh-add-to-collection__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+  min-width: 320px;
+}
+
+.abh-add-to-collection__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--borderRadiusMedium);
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.12s;
+}
+
+.abh-add-to-collection__item:hover {
+  background: var(--colorNeutralBackground3, #f5f5f5);
+}
+
+.abh-add-to-collection__item-name {
+  font-size: var(--fontSizeBase300);
+  color: var(--colorNeutralForeground1, #242424);
+  font-weight: var(--fontWeightRegular);
+  flex: 1;
+}
+
+.abh-add-to-collection__item-count {
+  font-size: var(--fontSizeBase200);
+  color: var(--colorNeutralForeground3, #707070);
+}
+
+.abh-add-to-collection__check {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--borderRadiusSmall);
+  border: 2px solid var(--colorNeutralStroke1, #d1d1d1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.abh-add-to-collection__check--active {
+  background: var(--colorBrandBackground, #0078d4);
+  border-color: var(--colorBrandBackground, #0078d4);
+}
+
+.abh-add-to-collection__check--active::after {
+  content: "✓";
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.abh-add-to-collection__divider {
+  height: 1px;
+  background: var(--colorNeutralStroke2, #e0e0e0);
+  margin: 8px 0;
+}
+
+.abh-add-to-collection__create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--borderRadiusMedium);
+  border: none;
+  background: none;
+  cursor: pointer;
+  width: 100%;
+  font-size: var(--fontSizeBase300);
+  color: var(--colorBrandForeground1, #0078d4);
+}
+
+.abh-add-to-collection__create:hover {
+  background: var(--colorNeutralBackground3, #f5f5f5);
+}
+
+.abh-add-to-collection__inline-create {
+  display: flex;
+  gap: 8px;
+  padding: 4px 12px;
+}

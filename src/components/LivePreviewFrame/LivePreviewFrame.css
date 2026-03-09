@@ -1,0 +1,97 @@
+.abh-preview-frame {
+  position: relative;
+  background: var(--colorNeutralBackground3, #f5f5f5);
+  border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+  border-radius: var(--borderRadiusLarge, 8px);
+  overflow: hidden;
+}
+
+.abh-preview-frame__iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* Overlays */
+.abh-preview-frame__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--colorNeutralBackground1, #ffffff);
+  z-index: 1;
+}
+
+.abh-preview-frame__overlay--error {
+  background: var(--colorNeutralBackground2, #fafafa);
+}
+
+.abh-preview-frame__spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacingVerticalM, 12px);
+  color: var(--colorNeutralForeground3, #9e9e9e);
+  font-size: var(--fontSizeBase300, 14px);
+}
+
+.abh-preview-frame__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacingVerticalS, 8px);
+  color: var(--colorPaletteRedForeground1, #d13438);
+  font-size: var(--fontSizeBase300, 14px);
+}
+
+.abh-preview-frame__retry {
+  margin-top: var(--spacingVerticalS, 8px);
+  padding: var(--spacingVerticalXS, 4px) var(--spacingHorizontalM, 12px);
+  border: 1px solid var(--colorNeutralStroke1, #d1d1d1);
+  border-radius: var(--borderRadiusMedium, 4px);
+  background: var(--colorNeutralBackground1, #ffffff);
+  color: var(--colorNeutralForeground1, #242424);
+  cursor: pointer;
+  font-size: var(--fontSizeBase200, 12px);
+}
+
+.abh-preview-frame__retry:hover {
+  background: var(--colorNeutralBackground1Hover, #f5f5f5);
+}
+
+/* Fullscreen button */
+.abh-preview-frame__fullscreen {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  padding: 6px;
+  border: 1px solid var(--colorNeutralStroke1, #d1d1d1);
+  border-radius: var(--borderRadiusMedium, 4px);
+  background: var(--colorNeutralBackground1, rgba(255, 255, 255, 0.9));
+  color: var(--colorNeutralForeground2, #616161);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 2;
+}
+
+.abh-preview-frame:hover .abh-preview-frame__fullscreen {
+  opacity: 1;
+}
+
+.abh-preview-frame__fullscreen:hover {
+  background: var(--colorNeutralBackground1, #ffffff);
+  border-color: var(--colorBrandStroke1, #0078d4);
+  color: var(--colorBrandForeground1, #0078d4);
+}
+
+.abh-preview-frame__fullscreen:focus-visible {
+  outline: 2px solid var(--colorBrandStroke1, #0078d4);
+  outline-offset: 2px;
+  opacity: 1;
+}
