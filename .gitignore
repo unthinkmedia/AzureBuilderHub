@@ -23,6 +23,7 @@ Thumbs.db
 # Azure Functions build
 api/dist/
 api/node_modules/
+local.settings.json
 
 # Logs
 *.log

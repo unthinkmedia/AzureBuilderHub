@@ -1,11 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { projects } from "../shared/cosmos.js";
+import { query } from "../shared/db.js";
 import { requireUser, AuthError } from "../shared/auth.js";
-import type { ProjectDocument } from "../shared/types.js";
-
-/**
- * API-4: PUT /api/projects/:id/publish — Toggle publish status
- */
+import { rowToProject } from "./projects.js";
 
 async function handlePublish(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
@@ -13,39 +9,38 @@ async function handlePublish(req: HttpRequest, _context: InvocationContext): Pro
     const id = req.params.id;
     if (!id) return { status: 400, body: "Missing project ID" };
 
-    const container = projects();
-    const { resource: project } = await container.item(id, id).read<ProjectDocument>();
+    const r = await query();
+    const result = await r
+      .input("id", id)
+      .query("SELECT * FROM projects WHERE id = @id AND deleted_at IS NULL");
 
-    if (!project || project.deletedAt) {
-      return { status: 404, body: "Project not found" };
-    }
-
-    if (project.authorId !== user.userId) {
-      return { status: 403, body: "Only the project owner can publish" };
-    }
+    if (result.recordset.length === 0) return { status: 404, body: "Project not found" };
+    const project = result.recordset[0];
+    if (project.author_id !== user.userId) return { status: 403, body: "Only the project owner can publish" };
 
     const body = (await req.json()) as { publish: boolean };
     const now = new Date().toISOString();
+    const newStatus = body.publish ? "published" : "draft";
+    const publishedAt = body.publish ? (project.published_at ?? now) : project.published_at;
 
-    const updates: Partial<ProjectDocument> = {
-      status: body.publish ? "published" : "draft",
-      updatedAt: now,
-      publishedAt: body.publish ? (project.publishedAt ?? now) : project.publishedAt,
-    };
+    const r2 = await query();
+    await r2
+      .input("id", id)
+      .input("status", newStatus)
+      .input("updatedAt", now)
+      .input("publishedAt", publishedAt)
+      .query(`
+        UPDATE projects
+        SET status = @status, updated_at = @updatedAt, published_at = @publishedAt
+        WHERE id = @id
+      `);
 
-    const { resource: updated } = await container.item(id, id).patch({
-      operations: [
-        { op: "set", path: "/status", value: updates.status },
-        { op: "set", path: "/updatedAt", value: updates.updatedAt },
-        { op: "set", path: "/publishedAt", value: updates.publishedAt },
-      ],
-    });
+    const r3 = await query();
+    const updated = await r3.input("id", id).query("SELECT * FROM projects WHERE id = @id");
 
-    return { status: 200, jsonBody: updated };
+    return { status: 200, jsonBody: rowToProject(updated.recordset[0]) };
   } catch (err) {
-    if (err instanceof AuthError) {
-      return { status: err.statusCode, body: err.message };
-    }
+    if (err instanceof AuthError) return { status: err.statusCode, body: err.message };
     throw err;
   }
 }

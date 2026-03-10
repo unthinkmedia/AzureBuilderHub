@@ -1,12 +1,8 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { projects } from "../shared/cosmos.js";
+import { getPool, query } from "../shared/db.js";
 import { requireUser, AuthError } from "../shared/auth.js";
-import type { ProjectDocument } from "../shared/types.js";
+import { rowToProject } from "./projects.js";
 import { randomUUID } from "node:crypto";
-
-/**
- * API-5: POST /api/projects/:id/fork — Fork a project
- */
 
 async function handleFork(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
@@ -14,60 +10,68 @@ async function handleFork(req: HttpRequest, _context: InvocationContext): Promis
     const id = req.params.id;
     if (!id) return { status: 400, body: "Missing project ID" };
 
-    const container = projects();
-    const { resource: original } = await container.item(id, id).read<ProjectDocument>();
+    const r = await query();
+    const result = await r
+      .input("id", id)
+      .query("SELECT * FROM projects WHERE id = @id AND deleted_at IS NULL");
 
-    if (!original || original.deletedAt) {
-      return { status: 404, body: "Project not found" };
-    }
-
-    if (original.status !== "published") {
-      return { status: 403, body: "Can only fork published projects" };
-    }
+    if (result.recordset.length === 0) return { status: 404, body: "Project not found" };
+    const original = result.recordset[0];
+    if (original.status !== "published") return { status: 403, body: "Can only fork published projects" };
 
     const now = new Date().toISOString();
-    const forkedProject: ProjectDocument = {
-      id: randomUUID(),
-      name: `${original.name} (fork)`,
-      description: original.description,
-      authorId: user.userId,
-      authorName: user.userDetails,
-      status: "draft",
-      tags: [...original.tags],
-      azureServices: [...original.azureServices],
-      layout: original.layout,
-      pageCount: original.pageCount,
-      currentVersion: 0,
-      starCount: 0,
-      forkCount: 0,
-      forkedFrom: {
-        projectId: original.id,
-        projectName: original.name,
-        authorName: original.authorName,
-      },
-      thumbnailUrl: original.thumbnailUrl,
-      previewUrl: original.previewUrl,
-      createdAt: now,
-      updatedAt: now,
-      publishedAt: null,
-      deletedAt: null,
-    };
+    const newId = randomUUID();
 
-    // Increment fork count on original
-    await container.item(id, id).patch({
-      operations: [
-        { op: "incr", path: "/forkCount", value: 1 },
-        { op: "set", path: "/updatedAt", value: now },
-      ],
-    });
+    const pool = await getPool();
+    const txn = pool.transaction();
+    await txn.begin();
+    try {
+      // Create forked project and return it via OUTPUT
+      const insertResult = await txn.request()
+        .input("id", newId)
+        .input("name", `${original.name} (fork)`)
+        .input("description", original.description)
+        .input("authorId", user.userId)
+        .input("authorName", user.userDetails)
+        .input("tags", original.tags)
+        .input("azureServices", original.azure_services)
+        .input("layout", original.layout)
+        .input("pageCount", original.page_count)
+        .input("forkedFromProjectId", original.id)
+        .input("forkedFromProjectName", original.name)
+        .input("forkedFromAuthorName", original.author_name)
+        .input("thumbnailUrl", original.thumbnail_url)
+        .input("previewUrl", original.preview_url)
+        .input("createdAt", now)
+        .input("updatedAt", now)
+        .query(`
+          INSERT INTO projects (
+            id, name, description, author_id, author_name, tags, azure_services, layout,
+            page_count, forked_from_project_id, forked_from_project_name, forked_from_author_name,
+            thumbnail_url, preview_url, created_at, updated_at
+          )
+          OUTPUT INSERTED.*
+          VALUES (
+            @id, @name, @description, @authorId, @authorName, @tags, @azureServices, @layout,
+            @pageCount, @forkedFromProjectId, @forkedFromProjectName, @forkedFromAuthorName,
+            @thumbnailUrl, @previewUrl, @createdAt, @updatedAt
+          )
+        `);
 
-    const { resource } = await container.items.create(forkedProject);
+      // Increment fork count on original
+      await txn.request()
+        .input("id", id)
+        .input("updatedAt", now)
+        .query("UPDATE projects SET fork_count = fork_count + 1, updated_at = @updatedAt WHERE id = @id");
 
-    return { status: 201, jsonBody: resource };
-  } catch (err) {
-    if (err instanceof AuthError) {
-      return { status: err.statusCode, body: err.message };
+      await txn.commit();
+      return { status: 201, jsonBody: rowToProject(insertResult.recordset[0]) };
+    } catch (e) {
+      await txn.rollback();
+      throw e;
     }
+  } catch (err) {
+    if (err instanceof AuthError) return { status: err.statusCode, body: err.message };
     throw err;
   }
 }

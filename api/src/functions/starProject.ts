@@ -1,10 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { projects, stars } from "../shared/cosmos.js";
+import { getPool } from "../shared/db.js";
 import { requireUser, AuthError } from "../shared/auth.js";
-
-/**
- * API-6: POST/DELETE /api/projects/:id/star — Star or unstar a project
- */
+import { rowToProject } from "./projects.js";
 
 async function handleStar(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
@@ -12,45 +9,62 @@ async function handleStar(req: HttpRequest, _context: InvocationContext): Promis
     const projectId = req.params.id;
     if (!projectId) return { status: 400, body: "Missing project ID" };
 
-    const starId = `${user.userId}_${projectId}`;
+    const pool = await getPool();
 
     if (req.method === "POST") {
-      // Star
+      const txn = pool.transaction();
+      await txn.begin();
       try {
-        await stars().items.create({
-          id: starId,
-          userId: user.userId,
-          projectId,
-          createdAt: new Date().toISOString(),
-        });
-        await projects().item(projectId, projectId).patch({
-          operations: [{ op: "incr", path: "/starCount", value: 1 }],
-        });
-      } catch (err: unknown) {
-        // 409 = already starred, ignore
-        if ((err as { code?: number }).code !== 409) throw err;
+        const result = await txn.request()
+          .input("userId", user.userId)
+          .input("projectId", projectId)
+          .input("createdAt", new Date().toISOString())
+          .query(`
+            MERGE stars AS target
+            USING (SELECT @userId AS user_id, @projectId AS project_id) AS source
+            ON target.user_id = source.user_id AND target.project_id = source.project_id
+            WHEN NOT MATCHED THEN
+              INSERT (user_id, project_id, created_at) VALUES (@userId, @projectId, @createdAt);
+          `);
+
+        if (result.rowsAffected[0] > 0) {
+          await txn.request()
+            .input("projectId", projectId)
+            .query("UPDATE projects SET star_count = star_count + 1 WHERE id = @projectId");
+        }
+        await txn.commit();
+      } catch (e) {
+        await txn.rollback();
+        throw e;
       }
       return { status: 204 };
     }
 
     if (req.method === "DELETE") {
-      // Unstar
+      const txn = pool.transaction();
+      await txn.begin();
       try {
-        await stars().item(starId, starId).delete();
-        await projects().item(projectId, projectId).patch({
-          operations: [{ op: "incr", path: "/starCount", value: -1 }],
-        });
-      } catch (err: unknown) {
-        if ((err as { code?: number }).code !== 404) throw err;
+        const result = await txn.request()
+          .input("userId", user.userId)
+          .input("projectId", projectId)
+          .query("DELETE FROM stars WHERE user_id = @userId AND project_id = @projectId");
+
+        if (result.rowsAffected[0] > 0) {
+          await txn.request()
+            .input("projectId", projectId)
+            .query("UPDATE projects SET star_count = CASE WHEN star_count > 0 THEN star_count - 1 ELSE 0 END WHERE id = @projectId");
+        }
+        await txn.commit();
+      } catch (e) {
+        await txn.rollback();
+        throw e;
       }
       return { status: 204 };
     }
 
     return { status: 405, body: "Method not allowed" };
   } catch (err) {
-    if (err instanceof AuthError) {
-      return { status: err.statusCode, body: err.message };
-    }
+    if (err instanceof AuthError) return { status: err.statusCode, body: err.message };
     throw err;
   }
 }
@@ -58,33 +72,20 @@ async function handleStar(req: HttpRequest, _context: InvocationContext): Promis
 async function handleMyStars(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
     const user = requireUser(req);
-    const { resources: userStars } = await stars().items
-      .query({
-        query: "SELECT * FROM c WHERE c.userId = @userId",
-        parameters: [{ name: "@userId", value: user.userId }],
-      })
-      .fetchAll();
 
-    if (userStars.length === 0) {
-      return { status: 200, jsonBody: [] };
-    }
+    const pool = await getPool();
+    const result = await pool.request()
+      .input("userId", user.userId)
+      .query(`
+        SELECT p.* FROM projects p
+        INNER JOIN stars s ON s.project_id = p.id
+        WHERE s.user_id = @userId AND p.deleted_at IS NULL
+        ORDER BY s.created_at DESC
+      `);
 
-    const projectIds = userStars.map((s: { projectId: string }) => s.projectId);
-    const result: unknown[] = [];
-    for (const pid of projectIds) {
-      try {
-        const { resource } = await projects().item(pid, pid).read();
-        if (resource && !resource.deletedAt) result.push(resource);
-      } catch {
-        // project may have been deleted
-      }
-    }
-
-    return { status: 200, jsonBody: result };
+    return { status: 200, jsonBody: result.recordset.map(rowToProject) };
   } catch (err) {
-    if (err instanceof AuthError) {
-      return { status: err.statusCode, body: err.message };
-    }
+    if (err instanceof AuthError) return { status: err.statusCode, body: err.message };
     throw err;
   }
 }

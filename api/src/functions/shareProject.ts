@@ -1,16 +1,8 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { projects, shares } from "../shared/cosmos.js";
+import { query } from "../shared/db.js";
 import { requireUser, AuthError } from "../shared/auth.js";
-import type { ProjectDocument, ShareDocument } from "../shared/types.js";
+import type { ShareDocument } from "../shared/types.js";
 import { randomUUID } from "node:crypto";
-
-/**
- * POST   /api/projects/:id/share   — Share a project with a user
- * DELETE /api/projects/:id/share   — Unshare a project from a user
- * GET    /api/projects/:id/shares  — List users a project is shared with
- * GET    /api/shares/by-me         — List all projects shared by the current user
- * GET    /api/shares/with-me       — List all projects shared with the current user
- */
 
 async function handleShareAction(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
@@ -18,31 +10,47 @@ async function handleShareAction(req: HttpRequest, _context: InvocationContext):
     const projectId = req.params.id;
     if (!projectId) return { status: 400, body: "Missing project ID" };
 
-    const container = projects();
-    const { resource: project } = await container.item(projectId, projectId).read<ProjectDocument>();
+    // Verify project exists
+    const r = await query();
+    const projResult = await r
+      .input("id", projectId)
+      .query("SELECT author_id FROM projects WHERE id = @id AND deleted_at IS NULL");
 
-    if (!project || project.deletedAt) {
-      return { status: 404, body: "Project not found" };
-    }
+    if (projResult.recordset.length === 0) return { status: 404, body: "Project not found" };
+    const project = projResult.recordset[0];
 
     if (req.method === "POST") {
-      // Only the owner can share their project
-      if (project.authorId !== user.userId) {
-        return { status: 403, body: "Only the project owner can share" };
-      }
+      if (project.author_id !== user.userId) return { status: 403, body: "Only the project owner can share" };
 
       const body = (await req.json()) as { userId: string; userName: string };
-      if (!body.userId || !body.userName) {
-        return { status: 400, body: "userId and userName are required" };
+      if (!body.userId || !body.userName) return { status: 400, body: "userId and userName are required" };
+      if (body.userId === user.userId) return { status: 400, body: "Cannot share a project with yourself" };
+
+      const id = randomUUID();
+      const r2 = await query();
+      try {
+        await r2
+          .input("id", id)
+          .input("projectId", projectId)
+          .input("ownerId", user.userId)
+          .input("ownerName", user.userDetails)
+          .input("sharedWithId", body.userId)
+          .input("sharedWithName", body.userName)
+          .input("createdAt", new Date().toISOString())
+          .query(`
+            INSERT INTO shares (id, project_id, owner_id, owner_name, shared_with_id, shared_with_name, created_at)
+            VALUES (@id, @projectId, @ownerId, @ownerName, @sharedWithId, @sharedWithName, @createdAt)
+          `);
+      } catch (err: unknown) {
+        // Unique constraint violation = already shared
+        if ((err as { number?: number }).number === 2627) {
+          return { status: 409, body: "Already shared with this user" };
+        }
+        throw err;
       }
 
-      // Can't share with yourself
-      if (body.userId === user.userId) {
-        return { status: 400, body: "Cannot share a project with yourself" };
-      }
-
-      const shareDoc: ShareDocument = {
-        id: randomUUID(),
+      const share: ShareDocument = {
+        id,
         projectId,
         ownerId: user.userId,
         ownerName: user.userDetails,
@@ -50,47 +58,33 @@ async function handleShareAction(req: HttpRequest, _context: InvocationContext):
         sharedWithName: body.userName,
         createdAt: new Date().toISOString(),
       };
-
-      try {
-        const { resource } = await shares().items.create(shareDoc);
-        return { status: 201, jsonBody: resource };
-      } catch (err: unknown) {
-        if ((err as { code?: number }).code === 409) {
-          return { status: 409, body: "Already shared with this user" };
-        }
-        throw err;
-      }
+      return { status: 201, jsonBody: share };
     }
 
     if (req.method === "DELETE") {
-      // Owner can unshare, or the shared user can remove themselves
       const body = (await req.json()) as { shareId: string };
       if (!body.shareId) return { status: 400, body: "shareId is required" };
 
-      try {
-        const { resource: share } = await shares().item(body.shareId, body.shareId).read<ShareDocument>();
-        if (!share) return { status: 404, body: "Share not found" };
+      const r2 = await query();
+      const shareResult = await r2
+        .input("shareId", body.shareId)
+        .query("SELECT * FROM shares WHERE id = @shareId");
 
-        // Only owner or the recipient can remove
-        if (share.ownerId !== user.userId && share.sharedWithId !== user.userId) {
-          return { status: 403, body: "Not authorized to remove this share" };
-        }
+      if (shareResult.recordset.length === 0) return { status: 404, body: "Share not found" };
+      const share = shareResult.recordset[0];
 
-        await shares().item(body.shareId, body.shareId).delete();
-        return { status: 204 };
-      } catch (err: unknown) {
-        if ((err as { code?: number }).code === 404) {
-          return { status: 404, body: "Share not found" };
-        }
-        throw err;
+      if (share.owner_id !== user.userId && share.shared_with_id !== user.userId) {
+        return { status: 403, body: "Not authorized to remove this share" };
       }
+
+      const r3 = await query();
+      await r3.input("shareId", body.shareId).query("DELETE FROM shares WHERE id = @shareId");
+      return { status: 204 };
     }
 
     return { status: 405, body: "Method not allowed" };
   } catch (err) {
-    if (err instanceof AuthError) {
-      return { status: err.statusCode, body: err.message };
-    }
+    if (err instanceof AuthError) return { status: err.statusCode, body: err.message };
     throw err;
   }
 }
@@ -101,21 +95,15 @@ async function handleProjectShares(req: HttpRequest, _context: InvocationContext
     const projectId = req.params.id;
     if (!projectId) return { status: 400, body: "Missing project ID" };
 
-    const { resources } = await shares().items
-      .query({
-        query: "SELECT * FROM c WHERE c.projectId = @projectId AND c.ownerId = @ownerId",
-        parameters: [
-          { name: "@projectId", value: projectId },
-          { name: "@ownerId", value: user.userId },
-        ],
-      })
-      .fetchAll();
+    const r = await query();
+    const result = await r
+      .input("projectId", projectId)
+      .input("ownerId", user.userId)
+      .query("SELECT * FROM shares WHERE project_id = @projectId AND owner_id = @ownerId");
 
-    return { status: 200, jsonBody: resources };
+    return { status: 200, jsonBody: result.recordset.map(rowToShare) };
   } catch (err) {
-    if (err instanceof AuthError) {
-      return { status: err.statusCode, body: err.message };
-    }
+    if (err instanceof AuthError) return { status: err.statusCode, body: err.message };
     throw err;
   }
 }
@@ -123,19 +111,14 @@ async function handleProjectShares(req: HttpRequest, _context: InvocationContext
 async function handleSharedByMe(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
     const user = requireUser(req);
+    const r = await query();
+    const result = await r
+      .input("ownerId", user.userId)
+      .query("SELECT * FROM shares WHERE owner_id = @ownerId ORDER BY created_at DESC");
 
-    const { resources } = await shares().items
-      .query({
-        query: "SELECT * FROM c WHERE c.ownerId = @ownerId ORDER BY c.createdAt DESC",
-        parameters: [{ name: "@ownerId", value: user.userId }],
-      })
-      .fetchAll();
-
-    return { status: 200, jsonBody: resources };
+    return { status: 200, jsonBody: result.recordset.map(rowToShare) };
   } catch (err) {
-    if (err instanceof AuthError) {
-      return { status: err.statusCode, body: err.message };
-    }
+    if (err instanceof AuthError) return { status: err.statusCode, body: err.message };
     throw err;
   }
 }
@@ -143,21 +126,28 @@ async function handleSharedByMe(req: HttpRequest, _context: InvocationContext): 
 async function handleSharedWithMe(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
     const user = requireUser(req);
+    const r = await query();
+    const result = await r
+      .input("userId", user.userId)
+      .query("SELECT * FROM shares WHERE shared_with_id = @userId ORDER BY created_at DESC");
 
-    const { resources } = await shares().items
-      .query({
-        query: "SELECT * FROM c WHERE c.sharedWithId = @userId ORDER BY c.createdAt DESC",
-        parameters: [{ name: "@userId", value: user.userId }],
-      })
-      .fetchAll();
-
-    return { status: 200, jsonBody: resources };
+    return { status: 200, jsonBody: result.recordset.map(rowToShare) };
   } catch (err) {
-    if (err instanceof AuthError) {
-      return { status: err.statusCode, body: err.message };
-    }
+    if (err instanceof AuthError) return { status: err.statusCode, body: err.message };
     throw err;
   }
+}
+
+function rowToShare(row: Record<string, unknown>): ShareDocument {
+  return {
+    id: row.id as string,
+    projectId: row.project_id as string,
+    ownerId: row.owner_id as string,
+    ownerName: row.owner_name as string,
+    sharedWithId: row.shared_with_id as string,
+    sharedWithName: row.shared_with_name as string,
+    createdAt: (row.created_at as Date)?.toISOString?.() ?? (row.created_at as string),
+  };
 }
 
 app.http("shareProject", {

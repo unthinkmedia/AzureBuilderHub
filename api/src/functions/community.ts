@@ -1,85 +1,82 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { projects } from "../shared/cosmos.js";
-
-/**
- * API-7: GET /api/community — List published projects with search/filter/sort
- */
+import { query } from "../shared/db.js";
+import { rowToProject } from "./projects.js";
+import sql from "mssql";
 
 async function handleCommunity(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
-  const search = req.query.get("search") ?? "";
-  const tagsParam = req.query.get("tags") ?? "";
-  const azureServicesParam = req.query.get("azureServices") ?? "";
-  const layout = req.query.get("layout") ?? "";
-  const sort = req.query.get("sort") ?? "stars";
-  const offset = Math.max(0, parseInt(req.query.get("offset") ?? "0", 10) || 0);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.get("limit") ?? "20", 10) || 20));
+    const search = req.query.get("search") ?? "";
+    const tagsParam = req.query.get("tags") ?? "";
+    const azureServicesParam = req.query.get("azureServices") ?? "";
+    const layout = req.query.get("layout") ?? "";
+    const sort = req.query.get("sort") ?? "stars";
+    const offset = Math.max(0, parseInt(req.query.get("offset") ?? "0", 10) || 0);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.get("limit") ?? "20", 10) || 20));
 
-  // Build query dynamically
-  let query = "SELECT * FROM c WHERE c.status = 'published' AND c.deletedAt = null";
-  const parameters: Array<{ name: string; value: string | string[] }> = [];
+    // Build WHERE clause dynamically
+    const conditions: string[] = ["status = 'published'", "deleted_at IS NULL"];
+    const r = await query();
 
-  if (search) {
-    query += " AND (CONTAINS(LOWER(c.name), @search) OR CONTAINS(LOWER(c.description), @search))";
-    parameters.push({ name: "@search", value: search.toLowerCase() });
-  }
-
-  if (tagsParam) {
-    const tags = tagsParam.split(",").filter(Boolean);
-    for (let i = 0; i < tags.length; i++) {
-      query += ` AND ARRAY_CONTAINS(c.tags, @tag${i})`;
-      parameters.push({ name: `@tag${i}`, value: tags[i] });
+    if (search) {
+      conditions.push("(LOWER(name) LIKE @search OR LOWER(description) LIKE @search)");
+      r.input("search", sql.NVarChar, `%${search.toLowerCase()}%`);
     }
-  }
 
-  if (azureServicesParam) {
-    const services = azureServicesParam.split(",").filter(Boolean);
-    for (let i = 0; i < services.length; i++) {
-      query += ` AND ARRAY_CONTAINS(c.azureServices, @svc${i})`;
-      parameters.push({ name: `@svc${i}`, value: services[i] });
+    if (tagsParam) {
+      const tags = tagsParam.split(",").filter(Boolean);
+      for (let i = 0; i < tags.length; i++) {
+        // Check if tag exists in the JSON array using JSON_VALUE/LIKE approach
+        conditions.push(`tags LIKE @tag${i}`);
+        r.input(`tag${i}`, sql.NVarChar, `%"${tags[i]}"%`);
+      }
     }
-  }
 
-  if (layout === "full-width" || layout === "side-panel") {
-    query += " AND c.layout = @layout";
-    parameters.push({ name: "@layout", value: layout });
-  }
+    if (azureServicesParam) {
+      const services = azureServicesParam.split(",").filter(Boolean);
+      for (let i = 0; i < services.length; i++) {
+        conditions.push(`azure_services LIKE @svc${i}`);
+        r.input(`svc${i}`, sql.NVarChar, `%"${services[i]}"%`);
+      }
+    }
 
-  // Sort
-  switch (sort) {
-    case "newest":
-      query += " ORDER BY c.publishedAt DESC";
-      break;
-    case "forks":
-      query += " ORDER BY c.forkCount DESC";
-      break;
-    case "stars":
-    default:
-      query += " ORDER BY c.starCount DESC";
-      break;
-  }
+    if (layout === "full-width" || layout === "side-panel") {
+      conditions.push("layout = @layout");
+      r.input("layout", sql.NVarChar, layout);
+    }
 
-  // Cosmos DB does not support parameterized OFFSET/LIMIT — inline validated ints
-  query += ` OFFSET ${offset} LIMIT ${limit}`;
+    const where = conditions.join(" AND ");
 
-  const container = projects();
+    // Sort
+    let orderBy: string;
+    switch (sort) {
+      case "newest":
+        orderBy = "published_at DESC";
+        break;
+      case "forks":
+        orderBy = "fork_count DESC";
+        break;
+      case "stars":
+      default:
+        orderBy = "star_count DESC";
+        break;
+    }
 
-  // Count
-  const countQuery = query.replace(/SELECT \*/, "SELECT VALUE COUNT(1)").replace(/ ORDER BY.*OFFSET.*/, "");
-  const { resources: countResult } = await container.items
-    .query({ query: countQuery, parameters })
-    .fetchAll();
-  const total = countResult[0] ?? 0;
+    // Count + Items in one round-trip
+    r.input("offset", sql.Int, offset);
+    r.input("limit", sql.Int, limit);
 
-  // Items
-  const { resources: items } = await container.items
-    .query({ query, parameters })
-    .fetchAll();
+    const result = await r.query(`
+      SELECT COUNT(*) AS total FROM projects WHERE ${where};
+      SELECT * FROM projects WHERE ${where}
+      ORDER BY ${orderBy}
+      OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;
+    `);
 
-  return {
-    status: 200,
-    jsonBody: { items, total },
-  };
+    const sets = result.recordsets as sql.IRecordSet<Record<string, unknown>>[];
+    const total = (sets[0][0] as { total: number }).total;
+    const items = sets[1].map(rowToProject);
+
+    return { status: 200, jsonBody: { items, total } };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { status: 500, body: `Community query failed: ${msg}` };

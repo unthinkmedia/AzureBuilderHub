@@ -10,11 +10,12 @@
     "prestart": "npm run build"
   },
   "dependencies": {
-    "@azure/cosmos": "^4.2.0",
     "@azure/functions": "^4.6.0",
-    "@azure/storage-blob": "^12.26.0"
+    "@azure/storage-blob": "^12.26.0",
+    "mssql": "^11.0.1"
   },
   "devDependencies": {
+    "@types/mssql": "^9.1.9",
     "@types/node": "^22.0.0",
     "typescript": "^5.9.3"
   }

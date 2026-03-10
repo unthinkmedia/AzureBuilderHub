@@ -1,25 +1,24 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { projects } from "../shared/cosmos.js";
-import { getUser, requireUser, AuthError } from "../shared/auth.js";
-import type { ProjectDocument } from "../shared/types.js";
-
-/**
- * API-3: GET /api/projects/:id — Get project detail
- */
+import { query } from "../shared/db.js";
+import { getUser, AuthError } from "../shared/auth.js";
+import { rowToProject } from "./projects.js";
 
 async function handleProjectById(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
     const id = req.params.id;
     if (!id) return { status: 400, body: "Missing project ID" };
 
-    const container = projects();
-    const { resource: project } = await container.item(id, id).read<ProjectDocument>();
+    const r = await query();
+    const result = await r
+      .input("id", id)
+      .query("SELECT * FROM projects WHERE id = @id AND deleted_at IS NULL");
 
-    if (!project || project.deletedAt) {
+    if (result.recordset.length === 0) {
       return { status: 404, body: "Project not found" };
     }
 
-    // Draft projects are only visible to the owner
+    const project = rowToProject(result.recordset[0]);
+
     if (project.status !== "published") {
       const user = getUser(req);
       if (!user || user.userId !== project.authorId) {
@@ -29,9 +28,7 @@ async function handleProjectById(req: HttpRequest, _context: InvocationContext):
 
     return { status: 200, jsonBody: project };
   } catch (err) {
-    if (err instanceof AuthError) {
-      return { status: err.statusCode, body: err.message };
-    }
+    if (err instanceof AuthError) return { status: err.statusCode, body: err.message };
     throw err;
   }
 }
