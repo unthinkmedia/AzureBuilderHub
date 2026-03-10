@@ -8,8 +8,8 @@ import { randomUUID } from "node:crypto";
 
 async function handleCollections(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
-    if (req.method === "GET") return listCollections(req);
-    if (req.method === "POST") return createCollection(req);
+    if (req.method === "GET") return await listCollections(req);
+    if (req.method === "POST") return await createCollection(req);
     return { status: 405, body: "Method not allowed" };
   } catch (err) {
     if (err instanceof AuthError) return { status: err.statusCode, body: err.message };
@@ -65,9 +65,9 @@ app.http("collections", {
 async function handleCollectionById(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
     const id = req.params.id;
-    if (req.method === "GET") return getCollection(req, id);
-    if (req.method === "PATCH") return updateCollection(req, id);
-    if (req.method === "DELETE") return deleteCollection(req, id);
+    if (req.method === "GET") return await getCollection(req, id);
+    if (req.method === "PATCH") return await updateCollection(req, id);
+    if (req.method === "DELETE") return await deleteCollection(req, id);
     return { status: 405, body: "Method not allowed" };
   } catch (err) {
     if (err instanceof AuthError) return { status: err.statusCode, body: err.message };

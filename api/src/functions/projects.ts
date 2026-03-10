@@ -12,18 +12,17 @@ import { randomUUID } from "node:crypto";
 async function handleProjects(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
     if (req.method === "GET") {
-      return listMyProjects(req);
+      return await listMyProjects(req);
     }
     if (req.method === "POST") {
-      return createProject(req);
+      return await createProject(req);
     }
     return { status: 405, body: "Method not allowed" };
   } catch (err) {
     if (err instanceof AuthError) {
       return { status: err.statusCode, body: err.message };
     }
-    const msg = err instanceof Error ? err.stack ?? err.message : String(err);
-    return { status: 500, body: `Internal error: ${msg}` };
+    throw err;
   }
 }
 
