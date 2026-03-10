@@ -6,6 +6,7 @@ import { projects } from "../shared/cosmos.js";
  */
 
 async function handleCommunity(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
+  try {
   const search = req.query.get("search") ?? "";
   const tagsParam = req.query.get("tags") ?? "";
   const azureServicesParam = req.query.get("azureServices") ?? "";
@@ -58,7 +59,8 @@ async function handleCommunity(req: HttpRequest, _context: InvocationContext): P
       break;
   }
 
-  query += ` OFFSET @offset LIMIT @limit`;
+  // Cosmos DB does not support parameterized OFFSET/LIMIT — inline validated ints
+  query += ` OFFSET ${offset} LIMIT ${limit}`;
 
   const container = projects();
 
@@ -71,20 +73,16 @@ async function handleCommunity(req: HttpRequest, _context: InvocationContext): P
 
   // Items
   const { resources: items } = await container.items
-    .query({
-      query,
-      parameters: [
-        ...parameters,
-        { name: "@offset", value: offset as unknown as string },
-        { name: "@limit", value: limit as unknown as string },
-      ],
-    })
+    .query({ query, parameters })
     .fetchAll();
 
   return {
     status: 200,
     jsonBody: { items, total },
   };
+  } catch (err) {
+    throw err;
+  }
 }
 
 app.http("community", {

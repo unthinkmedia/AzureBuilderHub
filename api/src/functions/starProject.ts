@@ -55,9 +55,50 @@ async function handleStar(req: HttpRequest, _context: InvocationContext): Promis
   }
 }
 
+async function handleMyStars(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
+  try {
+    const user = requireUser(req);
+    const { resources: userStars } = await stars().items
+      .query({
+        query: "SELECT * FROM c WHERE c.userId = @userId",
+        parameters: [{ name: "@userId", value: user.userId }],
+      })
+      .fetchAll();
+
+    if (userStars.length === 0) {
+      return { status: 200, jsonBody: [] };
+    }
+
+    const projectIds = userStars.map((s: { projectId: string }) => s.projectId);
+    const result: unknown[] = [];
+    for (const pid of projectIds) {
+      try {
+        const { resource } = await projects().item(pid, pid).read();
+        if (resource && !resource.deletedAt) result.push(resource);
+      } catch {
+        // project may have been deleted
+      }
+    }
+
+    return { status: 200, jsonBody: result };
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return { status: err.statusCode, body: err.message };
+    }
+    throw err;
+  }
+}
+
 app.http("starProject", {
   methods: ["POST", "DELETE"],
   authLevel: "anonymous",
   route: "projects/{id}/star",
   handler: handleStar,
+});
+
+app.http("myStars", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "stars/mine",
+  handler: handleMyStars,
 });
