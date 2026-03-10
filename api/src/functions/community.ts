@@ -81,7 +81,8 @@ async function handleCommunity(req: HttpRequest, _context: InvocationContext): P
     jsonBody: { items, total },
   };
   } catch (err) {
-    throw err;
+    const msg = err instanceof Error ? err.message : String(err);
+    return { status: 500, body: `Community query failed: ${msg}` };
   }
 }
 
