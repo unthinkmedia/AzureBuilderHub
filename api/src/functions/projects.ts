@@ -22,7 +22,8 @@ async function handleProjects(req: HttpRequest, _context: InvocationContext): Pr
     if (err instanceof AuthError) {
       return { status: err.statusCode, body: err.message };
     }
-    throw err;
+    const msg = err instanceof Error ? err.stack ?? err.message : String(err);
+    return { status: 500, body: `Internal error: ${msg}` };
   }
 }
 
