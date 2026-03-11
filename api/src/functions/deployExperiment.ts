@@ -30,7 +30,7 @@ async function handleDeploy(req: HttpRequest, _context: InvocationContext): Prom
     return { status: 500, body: msg };
   }
   if (!identity) {
-    return { status: 401, body: "Valid Microsoft authentication required. Run: az login" };
+    return { status: 401, body: "JWT validation returned null — check server logs" };
   }
 
   try {
