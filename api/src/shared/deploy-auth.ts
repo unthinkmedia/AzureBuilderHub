@@ -37,7 +37,10 @@ export interface DeployIdentity {
 }
 
 /**
- * Validate a Bearer token from `az account get-access-token`.
+ * Validate a deploy token from the X-Deploy-Token header.
+ *
+ * SWA intercepts the Authorization header and replaces it with its own
+ * internal HS256 JWT, so we use a custom header to pass the AAD token.
  *
  * Verifies:
  *   1. JWT signature against Microsoft's JWKS
@@ -47,24 +50,10 @@ export interface DeployIdentity {
  *
  * Returns the deployer's identity on success, null on failure.
  */
-export async function validateDeployToken(authHeader: string | null): Promise<DeployIdentity | null> {
-  if (!authHeader?.startsWith("Bearer ")) {
-    throw new Error(`Auth header: ${authHeader ? authHeader.substring(0, 30) + '...' : 'null'}`);
-  }
+export async function validateDeployToken(tokenHeader: string | null): Promise<DeployIdentity | null> {
+  if (!tokenHeader) return null;
 
-  const token = authHeader.slice(7);
-  const parts = token.split('.');
-  if (parts.length !== 3) {
-    throw new Error(`Token has ${parts.length} parts, expected 3. First 30 chars: ${token.substring(0, 30)}`);
-  }
-
-  // Decode header manually for diagnostics
-  const headerJson = Buffer.from(parts[0], 'base64url').toString();
-  const headerObj = JSON.parse(headerJson);
-  if (!headerObj.kid) {
-    throw new Error(`Token header has no kid. Header: ${headerJson}`);
-  }
-
+  const token = tokenHeader;
   const allowedTenant = process.env.ALLOWED_TENANT_ID;
   if (!allowedTenant) {
     throw new Error("ALLOWED_TENANT_ID not configured on the server");
@@ -85,8 +74,7 @@ export async function validateDeployToken(authHeader: string | null): Promise<De
       userEmail: (payload.upn as string) ?? (payload.preferred_username as string) ?? "",
       tenantId: tid,
     };
-  } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
-    throw new Error(`JWT verification: ${detail}`);
+  } catch {
+    return null;
   }
 }

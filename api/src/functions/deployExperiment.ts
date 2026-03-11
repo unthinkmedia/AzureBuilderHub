@@ -21,16 +21,16 @@ import { validateDeployToken } from "../shared/deploy-auth.js";
  * and returns a SAS upload URL for the client to push files.
  */
 async function handleDeploy(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
-  // ── Auth: validate AAD Bearer token ──
+  // ── Auth: validate AAD token from custom header (SWA intercepts Authorization) ──
   let identity;
   try {
-    identity = await validateDeployToken(req.headers.get("authorization"));
+    identity = await validateDeployToken(req.headers.get("x-deploy-token"));
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Auth configuration error";
     return { status: 500, body: msg };
   }
   if (!identity) {
-    return { status: 401, body: "JWT validation returned null — check server logs" };
+    return { status: 401, body: "Valid Microsoft authentication required. Run: az login" };
   }
 
   try {
