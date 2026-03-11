@@ -42,9 +42,9 @@ export async function requireUser(req: HttpRequest): Promise<AuthenticatedUser> 
 
   const allowedOrg = process.env.ALLOWED_GITHUB_ORG;
   if (allowedOrg && user.identityProvider === "github") {
-    const isMember = await checkGitHubOrgMembership(user.userDetails, allowedOrg);
-    if (!isMember) {
-      throw new AuthError(403, `Access restricted to ${allowedOrg} org members (user: ${user.userDetails}, provider: ${user.identityProvider}, userId: ${user.userId})`);
+    const result = await checkGitHubOrgMembership(user.userDetails, allowedOrg);
+    if (!result.isMember) {
+      throw new AuthError(403, `Access restricted to ${allowedOrg} org members (user: ${user.userDetails}, provider: ${user.identityProvider}, ghStatus: ${result.status}, token: ${result.hasToken}, scopes: ${result.scopes})`);
     }
   }
 
@@ -56,7 +56,7 @@ export async function requireUser(req: HttpRequest): Promise<AuthenticatedUser> 
  * Uses unauthenticated GitHub API — works for orgs with public membership.
  * If GITHUB_ORG_TOKEN is set, uses it for private membership checks.
  */
-async function checkGitHubOrgMembership(username: string, org: string): Promise<boolean> {
+async function checkGitHubOrgMembership(username: string, org: string): Promise<{ isMember: boolean; status: number; hasToken: boolean; scopes: string }> {
   const token = process.env.GITHUB_ORG_TOKEN;
   const headers: Record<string, string> = {
     "Accept": "application/vnd.github+json",
@@ -72,10 +72,12 @@ async function checkGitHubOrgMembership(username: string, org: string): Promise<
   const url = `https://api.github.com/orgs/${encodeURIComponent(org)}/${endpoint}/${encodeURIComponent(username)}`;
 
   try {
-    const res = await fetch(url, { headers });
-    return res.status === 204; // 204 = member, 404 = not member
-  } catch {
-    return false;
+    const res = await fetch(url, { headers, redirect: "manual" });
+    const scopes = res.headers.get("x-oauth-scopes") ?? "none";
+    return { isMember: res.status === 204, status: res.status, hasToken: !!token, scopes };
+  } catch (err) {
+    console.error(`GitHub org check error: ${err}`);
+    return { isMember: false, status: 0, hasToken: !!token, scopes: "error" };
   }
 }
 
