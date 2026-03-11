@@ -616,6 +616,47 @@ export function mockApiPlugin(): Plugin {
             if (!token) return json(res, 401, { error: "Not authenticated" });
             return json(res, 200, { token });
           }
+
+          // Proxy: search GitHub repos by topic (same as Azure Function)
+          if (url === "/api/github-repos" && (req.method ?? "GET") === "GET") {
+            const token = getSessionToken(req);
+            if (!token) return json(res, 401, { error: "Not authenticated" });
+            try {
+              const ghUser = await fetchGitHubUser(token);
+              const q = encodeURIComponent(`topic:vibe-platform user:${ghUser.login}`);
+              const ghRes = await fetch(
+                `https://api.github.com/search/repositories?q=${q}&per_page=100`,
+                { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github.v3+json" } }
+              );
+              const data = await ghRes.json();
+              return json(res, ghRes.status, data);
+            } catch (err: any) {
+              return json(res, 500, { error: err.message });
+            }
+          }
+
+          // Proxy: fetch experiment.json from a repo
+          const expMatch = url.match(/^\/api\/github-repos\/([^/]+)\/([^/]+)\/experiment$/);
+          if (expMatch && (req.method ?? "GET") === "GET") {
+            const token = getSessionToken(req);
+            if (!token) return json(res, 401, { error: "Not authenticated" });
+            const [, owner, repo] = expMatch;
+            try {
+              const ghRes = await fetch(
+                `https://api.github.com/repos/${owner}/${repo}/contents/experiment.json`,
+                { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github.v3+json" } }
+              );
+              if (!ghRes.ok) return json(res, 200, null);
+              const data = await ghRes.json() as { content: string; encoding: string };
+              if (data.encoding === "base64") {
+                const decoded = JSON.parse(Buffer.from(data.content, "base64").toString("utf-8"));
+                return json(res, 200, decoded);
+              }
+              return json(res, 200, null);
+            } catch {
+              return json(res, 200, null);
+            }
+          }
         }
 
         if (!url.startsWith("/api/") && url !== "/.auth/me") return next();

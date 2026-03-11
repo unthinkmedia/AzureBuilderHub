@@ -233,8 +233,6 @@ export interface ExperimentJson {
   previewUrl?: string;
 }
 
-const GITHUB_API = "https://api.github.com";
-
 /** Cached GitHub token fetched from the local auth session */
 let _cachedGitHubToken: string | null = null;
 
@@ -273,10 +271,20 @@ async function githubFetch<T>(url: string): Promise<T> {
 }
 
 export async function searchGitHubReposByTopic(username: string): Promise<GitHubRepo[]> {
-  const q = encodeURIComponent(`topic:vibe-platform user:${username}`);
-  const result = await githubFetch<GitHubSearchResult>(
-    `${GITHUB_API}/search/repositories?q=${q}&per_page=100`
-  );
+  // Try to get a local GitHub token first (fills the cache)
+  const token = await getGitHubToken();
+
+  if (token) {
+    // Local dev with real OAuth — call GitHub directly
+    const q = encodeURIComponent(`topic:vibe-platform user:${username}`);
+    const result = await githubFetch<GitHubSearchResult>(
+      `https://api.github.com/search/repositories?q=${q}&per_page=100`
+    );
+    return result.items;
+  }
+
+  // Production / SWA — use Azure Function proxy
+  const result = await apiFetch<GitHubSearchResult>("/github-repos");
   return result.items;
 }
 
@@ -284,16 +292,29 @@ export async function fetchExperimentJson(
   owner: string,
   repo: string
 ): Promise<ExperimentJson | null> {
-  try {
-    const data = await githubFetch<{ content: string; encoding: string }>(
-      `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/experiment.json`
-    );
-    if (data.encoding === "base64") {
-      return JSON.parse(atob(data.content));
+  const token = await getGitHubToken();
+
+  if (token) {
+    // Local dev — call GitHub directly
+    try {
+      const data = await githubFetch<{ content: string; encoding: string }>(
+        `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/experiment.json`
+      );
+      if (data.encoding === "base64") {
+        return JSON.parse(atob(data.content));
+      }
+      return null;
+    } catch {
+      return null;
     }
-    return null;
+  }
+
+  // Production — use Azure Function proxy
+  try {
+    return await apiFetch<ExperimentJson | null>(
+      `/github-repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/experiment`
+    );
   } catch {
-    // experiment.json may not exist in every repo
     return null;
   }
 }
