@@ -48,9 +48,23 @@ export interface DeployIdentity {
  * Returns the deployer's identity on success, null on failure.
  */
 export async function validateDeployToken(authHeader: string | null): Promise<DeployIdentity | null> {
-  if (!authHeader?.startsWith("Bearer ")) return null;
+  if (!authHeader?.startsWith("Bearer ")) {
+    throw new Error(`Auth header: ${authHeader ? authHeader.substring(0, 30) + '...' : 'null'}`);
+  }
 
   const token = authHeader.slice(7);
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    throw new Error(`Token has ${parts.length} parts, expected 3. First 30 chars: ${token.substring(0, 30)}`);
+  }
+
+  // Decode header manually for diagnostics
+  const headerJson = Buffer.from(parts[0], 'base64url').toString();
+  const headerObj = JSON.parse(headerJson);
+  if (!headerObj.kid) {
+    throw new Error(`Token header has no kid. Header: ${headerJson}`);
+  }
+
   const allowedTenant = process.env.ALLOWED_TENANT_ID;
   if (!allowedTenant) {
     throw new Error("ALLOWED_TENANT_ID not configured on the server");
