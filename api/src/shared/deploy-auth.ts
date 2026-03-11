@@ -35,6 +35,7 @@ export async function validateDeployToken(authHeader: string | null): Promise<De
   try {
     const { payload } = await jwtVerify(token, jwks, {
       audience: EXPECTED_AUDIENCE,
+      algorithms: ["RS256"],
     });
 
     const tid = payload.tid as string | undefined;
@@ -46,8 +47,7 @@ export async function validateDeployToken(authHeader: string | null): Promise<De
       userEmail: (payload.upn as string) ?? (payload.preferred_username as string) ?? "",
       tenantId: tid,
     };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`JWT verification failed: ${msg}`);
+  } catch {
+    return null;
   }
 }
