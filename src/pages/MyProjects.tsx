@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { listMyProjects, deleteProject, publishProject, forkProject } from "../api/client";
+import { searchGitHubReposByTopic, fetchExperimentJson } from "../api/client";
+import type { GitHubRepo, ExperimentJson } from "../api/client";
 import { Spinner, Button } from "@fluentui/react-components";
 import { ProjectCard } from "../components/ProjectCard";
 import type { ProjectSummary } from "../components/types";
@@ -14,13 +14,42 @@ const LAYOUT_OPTIONS = [
   { value: "side-panel", label: "Side panel" },
 ] as const;
 
+/** Map a GitHub repo + optional experiment.json into a ProjectSummary for the card */
+function repoToProject(
+  repo: GitHubRepo,
+  experiment: ExperimentJson | null
+): ProjectSummary {
+  return {
+    id: String(repo.id),
+    name: experiment?.name || repo.name,
+    description: experiment?.description || repo.description || "",
+    author: {
+      name: repo.owner.login,
+      id: repo.owner.login,
+      avatarUrl: repo.owner.avatar_url,
+    },
+    status: "published",
+    tags: experiment?.tags ?? repo.topics.filter((t) => t !== "vibe-platform"),
+    layout: (experiment?.layout as "full-width" | "side-panel") || "full-width",
+    pageCount: 1,
+    currentVersion: 1,
+    starCount: repo.stargazers_count,
+    forkCount: repo.forks_count,
+    forkedFrom: null,
+    thumbnailUrl: experiment?.thumbnailUrl || "",
+    previewUrl: experiment?.previewUrl || "",
+    repoUrl: repo.html_url,
+    createdAt: repo.created_at,
+    updatedAt: repo.updated_at,
+    publishedAt: repo.updated_at,
+  };
+}
+
 export const MyProjects: React.FC = () => {
   const { user, login } = useAuth();
-  const navigate = useNavigate();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "draft" | "published">("all");
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedLayout, setSelectedLayout] = useState("");
@@ -28,17 +57,29 @@ export const MyProjects: React.FC = () => {
   const [viewMode, setViewMode] = useState<ProjectCardVariant>("grid");
 
   const fetchProjects = useCallback(async () => {
+    if (!user) return;
     try {
       setLoading(true);
       setError(null);
-      const data = await listMyProjects();
-      setProjects(data);
+
+      // Search GitHub for repos tagged vibe-platform owned by signed-in user
+      const repos = await searchGitHubReposByTopic(user.userDetails);
+
+      // Enrich each repo with experiment.json metadata (best-effort)
+      const enriched = await Promise.all(
+        repos.map(async (repo) => {
+          const experiment = await fetchExperimentJson(repo.owner.login, repo.name);
+          return repoToProject(repo, experiment);
+        })
+      );
+
+      setProjects(enriched);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load projects");
+      setError(err instanceof Error ? err.message : "Failed to load projects from GitHub");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -48,32 +89,11 @@ export const MyProjects: React.FC = () => {
     }
   }, [user, fetchProjects]);
 
-  const handlePublishToggle = async (id: string, publish: boolean) => {
-    await publishProject(id, publish);
-    fetchProjects();
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this project?")) return;
-    await deleteProject(id);
-    fetchProjects();
-  };
-
-  const handleDuplicate = async (id: string) => {
-    await forkProject(id);
-    fetchProjects();
-  };
-
-  const handleShare = (id: string) => {
-    navigate(`/projects/${id}?share=true`);
-  };
-
-  const handleOpenInVSCode = (id: string) => {
-    window.open(`vscode://file/${id}`, "_blank");
-  };
-
-  const handleOpenInCopilotCLI = (id: string) => {
-    window.open(`https://github.com/codespaces?project=${encodeURIComponent(id)}`, "_blank");
+  const handleOpenRepo = (id: string) => {
+    const project = projects.find((p) => p.id === id);
+    if (project?.repoUrl) {
+      window.open(project.repoUrl, "_blank", "noopener");
+    }
   };
 
   // Derive available filter options from all projects
@@ -95,7 +115,6 @@ export const MyProjects: React.FC = () => {
   };
 
   const filtered = projects.filter((p) => {
-    if (filter !== "all" && p.status !== filter) return false;
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()))) return false;
     if (selectedTags.length > 0 && !selectedTags.some((t) => p.tags.includes(t))) return false;
     if (selectedLayout && p.layout !== selectedLayout) return false;
@@ -123,28 +142,16 @@ export const MyProjects: React.FC = () => {
         <div>
           <h1 className="abh-my-projects__title">My Projects</h1>
           <p className="abh-my-projects__subtitle">
-            {projects.length} project{projects.length !== 1 ? "s" : ""}
+            {projects.length} repo{projects.length !== 1 ? "s" : ""} tagged{" "}
+            <code className="abh-my-projects__topic-badge">vibe-platform</code>
           </p>
         </div>
         <div className="abh-my-projects__controls">
-          <div className="abh-my-projects__filters" role="radiogroup" aria-label="Filter projects">
-            {(["all", "draft", "published"] as const).map((f) => (
-              <button
-                key={f}
-                className={`abh-my-projects__filter ${filter === f ? "abh-my-projects__filter--active" : ""}`}
-                role="radio"
-                aria-checked={filter === f}
-                onClick={() => setFilter(f)}
-              >
-                {f.charAt(0).toUpperCase() + f.slice(1)}
-              </button>
-            ))}
-          </div>
           <Button
-            appearance="primary"
-            onClick={() => navigate("/new")}
+            appearance="outline"
+            onClick={fetchProjects}
           >
-            + New Project
+            Refresh
           </Button>
         </div>
       </div>
@@ -270,7 +277,7 @@ export const MyProjects: React.FC = () => {
       {/* Content */}
       {loading ? (
         <div className="abh-my-projects__loading">
-          <Spinner size="medium" label="Loading projects…" />
+          <Spinner size="medium" label="Searching GitHub repos…" />
         </div>
       ) : error ? (
         <div className="abh-my-projects__error">
@@ -283,19 +290,19 @@ export const MyProjects: React.FC = () => {
             <rect x="8" y="12" width="32" height="24" rx="3" stroke="#d1d1d1" strokeWidth="2" fill="none" />
             <path d="M16 22h16M16 28h10" stroke="#d1d1d1" strokeWidth="2" strokeLinecap="round" />
           </svg>
-          <h3>No projects yet</h3>
+          <h3>No repos found</h3>
           <p>
-            {filter !== "all" || search || activeFilterCount > 0
-              ? "No projects match your current filters. Try adjusting your search or filters."
-              : "Create your first project to get started."}
+            {search || activeFilterCount > 0
+              ? "No repos match your current filters. Try adjusting your search."
+              : `Tag a GitHub repo with the topic "vibe-platform" to see it here.`}
           </p>
-          {(filter !== "all" || activeFilterCount > 0 || search) ? (
-            <Button appearance="secondary" onClick={() => { setFilter("all"); clearAllFilters(); }}>
+          {(activeFilterCount > 0 || search) ? (
+            <Button appearance="secondary" onClick={() => { clearAllFilters(); }}>
               Clear all filters
             </Button>
           ) : (
-            <Button appearance="primary" onClick={() => navigate("/new")}>
-              Create your first project
+            <Button appearance="primary" as="a" href="https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics" target="_blank" rel="noopener">
+              Learn about GitHub topics
             </Button>
           )}
         </div>
@@ -305,14 +312,7 @@ export const MyProjects: React.FC = () => {
             <ProjectCard
               key={project.id}
               project={project}
-              onClick={(id) => navigate(`/projects/${id}`)}
-              onPublishToggle={handlePublishToggle}
-              showAddToCollection
-              onDelete={handleDelete}
-              onDuplicate={handleDuplicate}
-              onShare={handleShare}
-              onOpenInVSCode={handleOpenInVSCode}
-              onOpenInCopilotCLI={handleOpenInCopilotCLI}
+              onClick={() => handleOpenRepo(project.id)}
               variant={viewMode}
             />
           ))}

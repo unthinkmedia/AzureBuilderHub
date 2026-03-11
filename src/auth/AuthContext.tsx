@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { clearGitHubTokenCache } from "../api/client";
 
 export interface AuthUser {
   userId: string;
@@ -58,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    clearGitHubTokenCache();
     window.location.href = "/.auth/logout";
   };
 

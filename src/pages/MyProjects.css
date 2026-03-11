@@ -26,6 +26,16 @@
   margin: 4px 0 0;
 }
 
+.abh-my-projects__topic-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorBrandBackground2, #ebf3fc);
+  color: var(--colorBrandForeground1, #0078d4);
+  font-size: var(--fontSizeBase200);
+  font-family: var(--fontFamilyMonospace, monospace);
+}
+
 .abh-my-projects__controls {
   display: flex;
   align-items: center;

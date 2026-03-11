@@ -197,3 +197,103 @@ export interface UserSearchResult {
 export async function searchUsers(query: string): Promise<UserSearchResult[]> {
   return apiFetch<UserSearchResult[]>(`/users/search?q=${encodeURIComponent(query)}`);
 }
+
+/* ── GitHub Integration ── */
+
+export interface GitHubRepo {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  html_url: string;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
+  topics: string[];
+  stargazers_count: number;
+  forks_count: number;
+  created_at: string;
+  updated_at: string;
+  language: string | null;
+  default_branch: string;
+}
+
+export interface GitHubSearchResult {
+  total_count: number;
+  items: GitHubRepo[];
+}
+
+export interface ExperimentJson {
+  name?: string;
+  description?: string;
+  tags?: string[];
+  layout?: string;
+  thumbnailUrl?: string;
+  previewUrl?: string;
+}
+
+const GITHUB_API = "https://api.github.com";
+
+/** Cached GitHub token fetched from the local auth session */
+let _cachedGitHubToken: string | null = null;
+
+async function getGitHubToken(): Promise<string | null> {
+  if (_cachedGitHubToken) return _cachedGitHubToken;
+  try {
+    const res = await fetch("/api/github-token");
+    if (res.ok) {
+      const data = await res.json() as { token: string };
+      _cachedGitHubToken = data.token;
+      return _cachedGitHubToken;
+    }
+  } catch {
+    // Not available (mock mode or not authenticated)
+  }
+  return null;
+}
+
+/** Clear cached token on logout */
+export function clearGitHubTokenCache() {
+  _cachedGitHubToken = null;
+}
+
+async function githubFetch<T>(url: string): Promise<T> {
+  const token = await getGitHubToken();
+  const headers: Record<string, string> = { Accept: "application/vnd.github.v3+json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`GitHub ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
+export async function searchGitHubReposByTopic(username: string): Promise<GitHubRepo[]> {
+  const q = encodeURIComponent(`topic:vibe-platform user:${username}`);
+  const result = await githubFetch<GitHubSearchResult>(
+    `${GITHUB_API}/search/repositories?q=${q}&per_page=100`
+  );
+  return result.items;
+}
+
+export async function fetchExperimentJson(
+  owner: string,
+  repo: string
+): Promise<ExperimentJson | null> {
+  try {
+    const data = await githubFetch<{ content: string; encoding: string }>(
+      `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/experiment.json`
+    );
+    if (data.encoding === "base64") {
+      return JSON.parse(atob(data.content));
+    }
+    return null;
+  } catch {
+    // experiment.json may not exist in every repo
+    return null;
+  }
+}
