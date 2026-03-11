@@ -5,7 +5,7 @@ import { rowToProject } from "./projects.js";
 
 async function handleStar(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const projectId = req.params.id;
     if (!projectId) return { status: 400, body: "Missing project ID" };
 
@@ -71,7 +71,7 @@ async function handleStar(req: HttpRequest, _context: InvocationContext): Promis
 
 async function handleMyStars(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
-    const user = requireUser(req);
+    const user = await requireUser(req);
 
     const pool = await getPool();
     const result = await pool.request()

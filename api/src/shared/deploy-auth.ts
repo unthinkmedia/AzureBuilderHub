@@ -46,8 +46,7 @@ export async function validateDeployToken(authHeader: string | null): Promise<De
       userEmail: (payload.upn as string) ?? (payload.preferred_username as string) ?? "",
       tenantId: tid,
     };
-  } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
-    throw new Error(`JWT: ${detail}`);
+  } catch {
+    return null;
   }
 }

@@ -18,7 +18,7 @@ async function handleCollections(req: HttpRequest, _context: InvocationContext):
 }
 
 async function listCollections(req: HttpRequest): Promise<HttpResponseInit> {
-  const user = requireUser(req);
+  const user = await requireUser(req);
   const r = await query();
   const result = await r
     .input("authorId", user.userId)
@@ -34,7 +34,7 @@ async function listCollections(req: HttpRequest): Promise<HttpResponseInit> {
 }
 
 async function createCollection(req: HttpRequest): Promise<HttpResponseInit> {
-  const user = requireUser(req);
+  const user = await requireUser(req);
   const body = (await req.json()) as Partial<CollectionDocument>;
 
   if (!body.name || typeof body.name !== "string" || body.name.trim().length < 1) {
@@ -93,14 +93,14 @@ async function handleCollectionById(req: HttpRequest, _context: InvocationContex
 }
 
 async function getCollection(req: HttpRequest, id: string): Promise<HttpResponseInit> {
-  const user = requireUser(req);
+  const user = await requireUser(req);
   const collection = await fetchCollection(id, user.userId);
   if (!collection) return { status: 404, body: "Collection not found" };
   return { status: 200, jsonBody: collection };
 }
 
 async function updateCollection(req: HttpRequest, id: string): Promise<HttpResponseInit> {
-  const user = requireUser(req);
+  const user = await requireUser(req);
   const existing = await fetchCollection(id, user.userId);
   if (!existing) return { status: 404, body: "Collection not found" };
 
@@ -132,7 +132,7 @@ async function updateCollection(req: HttpRequest, id: string): Promise<HttpRespo
 }
 
 async function deleteCollection(req: HttpRequest, id: string): Promise<HttpResponseInit> {
-  const user = requireUser(req);
+  const user = await requireUser(req);
   const existing = await fetchCollection(id, user.userId);
   if (!existing) return { status: 404, body: "Collection not found" };
 
@@ -157,7 +157,7 @@ app.http("collectionById", {
 async function handleCollectionProjects(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
     const id = req.params.id;
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const existing = await fetchCollection(id, user.userId);
     if (!existing) return { status: 404, body: "Collection not found" };
 

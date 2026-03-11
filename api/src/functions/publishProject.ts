@@ -5,7 +5,7 @@ import { rowToProject } from "./projects.js";
 
 async function handlePublish(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const id = req.params.id;
     if (!id) return { status: 400, body: "Missing project ID" };
 

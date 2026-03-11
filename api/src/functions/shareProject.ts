@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 
 async function handleShareAction(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const projectId = req.params.id;
     if (!projectId) return { status: 400, body: "Missing project ID" };
 
@@ -91,7 +91,7 @@ async function handleShareAction(req: HttpRequest, _context: InvocationContext):
 
 async function handleProjectShares(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const projectId = req.params.id;
     if (!projectId) return { status: 400, body: "Missing project ID" };
 
@@ -110,7 +110,7 @@ async function handleProjectShares(req: HttpRequest, _context: InvocationContext
 
 async function handleSharedByMe(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const r = await query();
     const result = await r
       .input("ownerId", user.userId)
@@ -125,7 +125,7 @@ async function handleSharedByMe(req: HttpRequest, _context: InvocationContext): 
 
 async function handleSharedWithMe(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const r = await query();
     const result = await r
       .input("userId", user.userId)

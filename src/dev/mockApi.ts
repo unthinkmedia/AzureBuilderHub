@@ -408,7 +408,7 @@ const mockUser = {
   clientPrincipal: {
     userId: "user-1",
     userDetails: "Alex Britez",
-    identityProvider: "aad",
+    identityProvider: "github",
     userRoles: ["authenticated", "anonymous"],
   },
 };

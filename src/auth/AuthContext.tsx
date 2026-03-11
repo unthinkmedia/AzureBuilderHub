@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const login = () => {
-    window.location.href = "/.auth/login/aad";
+    window.location.href = "/.auth/login/github";
   };
 
   const logout = () => {

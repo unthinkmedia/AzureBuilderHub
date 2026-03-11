@@ -16,7 +16,7 @@ async function handleProjects(req: HttpRequest, _context: InvocationContext): Pr
 }
 
 async function listMyProjects(req: HttpRequest): Promise<HttpResponseInit> {
-  const user = requireUser(req);
+  const user = await requireUser(req);
   const r = await query();
   const result = await r
     .input("authorId", user.userId)
@@ -30,7 +30,7 @@ async function listMyProjects(req: HttpRequest): Promise<HttpResponseInit> {
 }
 
 async function createProject(req: HttpRequest): Promise<HttpResponseInit> {
-  const user = requireUser(req);
+  const user = await requireUser(req);
   const body = (await req.json()) as Partial<ProjectDocument>;
 
   if (!body.name || typeof body.name !== "string" || body.name.trim().length < 3) {

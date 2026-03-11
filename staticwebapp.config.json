@@ -12,19 +12,9 @@
       "allowedRoles": ["anonymous", "authenticated"]
     }
   ],
-  "auth": {
-    "identityProviders": {
-      "azureActiveDirectory": {
-        "registration": {
-          "openIdIssuer": "https://login.microsoftonline.com/{TENANT_ID}/v2.0",
-          "clientIdSettingName": "AAD_CLIENT_ID"
-        }
-      }
-    }
-  },
   "responseOverrides": {
     "401": {
-      "redirect": "/.auth/login/aad",
+      "redirect": "/.auth/login/github",
       "statusCode": 302
     }
   },

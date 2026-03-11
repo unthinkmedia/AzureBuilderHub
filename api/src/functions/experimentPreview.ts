@@ -15,7 +15,7 @@ import { getExperimentsContainer, getMimeType } from "../shared/storage.js";
  */
 async function handlePreview(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
-    const user = requireUser(req);
+    const user = await requireUser(req);
     const projectId = req.params.id;
     if (!projectId) {
       return { status: 400, body: "Missing project ID" };
