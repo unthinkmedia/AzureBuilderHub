@@ -32,7 +32,6 @@ export function getUser(req: HttpRequest): AuthenticatedUser | null {
 
 /**
  * Require authentication — throws 401 if the request is unauthenticated.
- * If ALLOWED_GITHUB_ORG is set, also verifies the GitHub user belongs to that org.
  */
 export async function requireUser(req: HttpRequest): Promise<AuthenticatedUser> {
   const user = getUser(req);
@@ -40,45 +39,7 @@ export async function requireUser(req: HttpRequest): Promise<AuthenticatedUser> 
     throw new AuthError(401, "Authentication required");
   }
 
-  const allowedOrg = process.env.ALLOWED_GITHUB_ORG;
-  if (allowedOrg && user.identityProvider === "github") {
-    const result = await checkGitHubOrgMembership(user.userDetails, allowedOrg);
-    if (!result.isMember) {
-      throw new AuthError(403, `Access restricted to ${allowedOrg} org members (user: ${user.userDetails}, provider: ${user.identityProvider}, ghStatus: ${result.status}, token: ${result.hasToken}, scopes: ${result.scopes})`);
-    }
-  }
-
   return user;
-}
-
-/**
- * Check if a GitHub user is a public member of the given org.
- * Uses unauthenticated GitHub API — works for orgs with public membership.
- * If GITHUB_ORG_TOKEN is set, uses it for private membership checks.
- */
-async function checkGitHubOrgMembership(username: string, org: string): Promise<{ isMember: boolean; status: number; hasToken: boolean; scopes: string }> {
-  const token = process.env.GITHUB_ORG_TOKEN;
-  const headers: Record<string, string> = {
-    "Accept": "application/vnd.github+json",
-    "User-Agent": "AzureBuilderHub",
-  };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  // With token: /orgs/{org}/members/{username} checks all members
-  // Without token: /orgs/{org}/public_members/{username} checks public only
-  const endpoint = token ? "members" : "public_members";
-  const url = `https://api.github.com/orgs/${encodeURIComponent(org)}/${endpoint}/${encodeURIComponent(username)}`;
-
-  try {
-    const res = await fetch(url, { headers, redirect: "manual" });
-    const scopes = res.headers.get("x-oauth-scopes") ?? "none";
-    return { isMember: res.status === 204, status: res.status, hasToken: !!token, scopes };
-  } catch (err) {
-    console.error(`GitHub org check error: ${err}`);
-    return { isMember: false, status: 0, hasToken: !!token, scopes: "error" };
-  }
 }
 
 export class AuthError extends Error {
