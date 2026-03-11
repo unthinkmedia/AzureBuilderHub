@@ -35,7 +35,6 @@ export async function validateDeployToken(authHeader: string | null): Promise<De
   try {
     const { payload } = await jwtVerify(token, jwks, {
       audience: EXPECTED_AUDIENCE,
-      algorithms: ["RS256"],
     });
 
     const tid = payload.tid as string | undefined;
