@@ -44,7 +44,7 @@ export async function requireUser(req: HttpRequest): Promise<AuthenticatedUser> 
   if (allowedOrg && user.identityProvider === "github") {
     const isMember = await checkGitHubOrgMembership(user.userDetails, allowedOrg);
     if (!isMember) {
-      throw new AuthError(403, `Access restricted to ${allowedOrg} org members`);
+      throw new AuthError(403, `Access restricted to ${allowedOrg} org members (user: ${user.userDetails}, provider: ${user.identityProvider}, userId: ${user.userId})`);
     }
   }
 
