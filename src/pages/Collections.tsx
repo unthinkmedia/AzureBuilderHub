@@ -178,7 +178,7 @@ export const Collections: React.FC = () => {
         <div className="abh-collections__empty">
           <h3>Sign in to view your collections</h3>
           <p>Organize your projects into collections, like playlists.</p>
-          <Button appearance="primary" onClick={login}>Sign in with Microsoft</Button>
+          <Button appearance="primary" onClick={login}>Sign in with GitHub</Button>
         </div>
       </div>
     );

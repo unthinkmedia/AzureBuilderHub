@@ -109,7 +109,7 @@ export const MyProjects: React.FC = () => {
           <h2>Sign in to view your projects</h2>
           <p>Create, manage, and publish your Azure Portal prototypes.</p>
           <Button appearance="primary" onClick={login}>
-            Sign in with Microsoft
+            Sign in with GitHub
           </Button>
         </div>
       </div>

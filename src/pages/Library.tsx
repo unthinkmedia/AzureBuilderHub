@@ -88,7 +88,7 @@ export const Library: React.FC = () => {
           <h3>Sign in to view your library</h3>
           <p>See projects shared with you and projects you follow.</p>
           <Button appearance="primary" onClick={login}>
-            Sign in with Microsoft
+            Sign in with GitHub
           </Button>
         </div>
       </div>

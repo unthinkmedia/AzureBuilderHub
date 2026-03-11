@@ -35,7 +35,7 @@ export const NewProject: React.FC = () => {
       <div className="abh-new__auth">
         <h2>Sign in to create a project</h2>
         <Button appearance="primary" onClick={login}>
-          Sign in with Microsoft
+          Sign in with GitHub
         </Button>
       </div>
     );
