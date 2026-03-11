@@ -8,10 +8,6 @@
       "allowedRoles": ["anonymous"]
     },
     {
-      "route": "/api/projects/*/preview/*",
-      "allowedRoles": ["authenticated"]
-    },
-    {
       "route": "/api/*",
       "allowedRoles": ["anonymous", "authenticated"]
     }
