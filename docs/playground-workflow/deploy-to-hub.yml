@@ -1,0 +1,121 @@
+name: Deploy Experiment to Hub
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'experiment.json'
+      - 'package.json'
+      - 'vite.config.ts'
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy-pages:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  register-with-hub:
+    needs: deploy-pages
+    runs-on: ubuntu-latest
+    if: vars.HUB_API_URL != ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: experiment.json
+
+      - name: Read experiment metadata
+        id: meta
+        run: |
+          if [ -f experiment.json ]; then
+            NAME=$(jq -r '.name // empty' experiment.json)
+            DESC=$(jq -r '.description // empty' experiment.json)
+            TAGS=$(jq -c '.tags // []' experiment.json)
+            SERVICES=$(jq -c '.azureServices // []' experiment.json)
+            LAYOUT=$(jq -r '.layout // "full-width"' experiment.json)
+          fi
+          echo "name=${NAME:-${{ github.event.repository.name }}}" >> "$GITHUB_OUTPUT"
+          echo "description=${DESC:-Experiment from ${{ github.repository }}}" >> "$GITHUB_OUTPUT"
+          echo "tags=${TAGS:-[]}" >> "$GITHUB_OUTPUT"
+          echo "services=${SERVICES:-[]}" >> "$GITHUB_OUTPUT"
+          echo "layout=${LAYOUT:-full-width}" >> "$GITHUB_OUTPUT"
+
+      - name: Register experiment with Hub
+        env:
+          HUB_API_URL: ${{ vars.HUB_API_URL }}
+          DEPLOY_KEY: ${{ secrets.HUB_DEPLOY_KEY }}
+        run: |
+          PREVIEW_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${HUB_API_URL}/api/deploy" \
+            -H "Content-Type: application/json" \
+            -H "x-deploy-key: ${DEPLOY_KEY}" \
+            -d "$(jq -n \
+              --arg owner "${{ github.repository_owner }}" \
+              --arg repo "${{ github.event.repository.name }}" \
+              --arg name "${{ steps.meta.outputs.name }}" \
+              --arg desc "${{ steps.meta.outputs.description }}" \
+              --arg url "${PREVIEW_URL}" \
+              --arg layout "${{ steps.meta.outputs.layout }}" \
+              --argjson tags '${{ steps.meta.outputs.tags }}' \
+              --argjson services '${{ steps.meta.outputs.services }}' \
+              '{
+                repoOwner: $owner,
+                repoName: $repo,
+                experimentName: $name,
+                description: $desc,
+                previewUrl: $url,
+                layout: $layout,
+                tags: $tags,
+                azureServices: $services
+              }'
+            )")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          echo "Hub API response (HTTP ${HTTP_CODE}):"
+          echo "$BODY" | jq . 2>/dev/null || echo "$BODY"
+
+          if [ "$HTTP_CODE" -ge 400 ]; then
+            echo "::error::Hub registration failed with HTTP ${HTTP_CODE}"
+            exit 1
+          fi
+
+          echo "::notice::Experiment deployed and registered with Hub successfully"

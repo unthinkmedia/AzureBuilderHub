@@ -403,9 +403,9 @@ export const ProjectDetail: React.FC = () => {
       >
         <Tab value="overview">
           Core Jobs to be Done
-          {((project.jtbd?.length ?? 0) + project.azureServices.length) > 0 && (
+          {(project.jtbd?.length ?? 0) > 0 && (
             <CounterBadge
-              count={(project.jtbd?.length ?? 0) + project.azureServices.length}
+              count={project.jtbd?.length ?? 0}
               appearance="filled"
               color="informative"
               size="small"
@@ -459,18 +459,6 @@ export const ProjectDetail: React.FC = () => {
               </div>
             )}
 
-            {project.azureServices.length > 0 && (
-              <div className="abh-detail__services">
-                <h3 className="abh-detail__section-title">Azure Services</h3>
-                <div className="abh-detail__service-list">
-                  {project.azureServices.map((svc) => (
-                    <Badge key={svc} appearance="tint" color="brand" size="medium">
-                      {svc}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
           </>
         )}
 

@@ -4,6 +4,14 @@
   },
   "routes": [
     {
+      "route": "/api/deploy",
+      "allowedRoles": ["anonymous"]
+    },
+    {
+      "route": "/api/projects/*/preview/*",
+      "allowedRoles": ["authenticated"]
+    },
+    {
       "route": "/api/*",
       "allowedRoles": ["anonymous", "authenticated"]
     }
@@ -27,6 +35,6 @@
   "globalHeaders": {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
-    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https://*.blob.core.windows.net data:; frame-src 'self' https://*.blob.core.windows.net"
+    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
   }
 }

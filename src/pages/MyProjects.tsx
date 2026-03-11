@@ -23,7 +23,6 @@ export const MyProjects: React.FC = () => {
   const [filter, setFilter] = useState<"all" | "draft" | "published">("all");
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedLayout, setSelectedLayout] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ProjectCardVariant>("grid");
@@ -84,23 +83,13 @@ export const MyProjects: React.FC = () => {
     return Array.from(set).sort();
   }, [projects]);
 
-  const availableServices = useMemo(() => {
-    const set = new Set<string>();
-    projects.forEach((p) => p.azureServices.forEach((s) => set.add(s)));
-    return Array.from(set).sort();
-  }, [projects]);
-
-  const activeFilterCount = selectedTags.length + selectedServices.length + (selectedLayout ? 1 : 0);
+  const activeFilterCount = selectedTags.length + (selectedLayout ? 1 : 0);
 
   const toggleTag = (tag: string) =>
     setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
 
-  const toggleService = (svc: string) =>
-    setSelectedServices((prev) => (prev.includes(svc) ? prev.filter((s) => s !== svc) : [...prev, svc]));
-
   const clearAllFilters = () => {
     setSelectedTags([]);
-    setSelectedServices([]);
     setSelectedLayout("");
     setSearch("");
   };
@@ -109,7 +98,6 @@ export const MyProjects: React.FC = () => {
     if (filter !== "all" && p.status !== filter) return false;
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()))) return false;
     if (selectedTags.length > 0 && !selectedTags.some((t) => p.tags.includes(t))) return false;
-    if (selectedServices.length > 0 && !selectedServices.some((s) => p.azureServices.includes(s))) return false;
     if (selectedLayout && p.layout !== selectedLayout) return false;
     return true;
   });
@@ -243,23 +231,6 @@ export const MyProjects: React.FC = () => {
               </div>
             </div>
           )}
-          {availableServices.length > 0 && (
-            <div className="abh-my-projects__filter-group">
-              <h4 className="abh-my-projects__filter-heading">Azure Services</h4>
-              <div className="abh-my-projects__filter-chips">
-                {availableServices.map((svc) => (
-                  <button
-                    key={svc}
-                    className={`abh-my-projects__chip ${selectedServices.includes(svc) ? "abh-my-projects__chip--active" : ""}`}
-                    onClick={() => toggleService(svc)}
-                    aria-pressed={selectedServices.includes(svc)}
-                  >
-                    {svc}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
           <div className="abh-my-projects__filter-group">
             <h4 className="abh-my-projects__filter-heading">Layout</h4>
             <div className="abh-my-projects__filter-chips">
@@ -285,12 +256,6 @@ export const MyProjects: React.FC = () => {
             <span key={`t-${t}`} className="abh-my-projects__active-chip">
               {t}
               <button aria-label={`Remove ${t} filter`} onClick={() => toggleTag(t)}>×</button>
-            </span>
-          ))}
-          {selectedServices.map((s) => (
-            <span key={`s-${s}`} className="abh-my-projects__active-chip">
-              {s}
-              <button aria-label={`Remove ${s} filter`} onClick={() => toggleService(s)}>×</button>
             </span>
           ))}
           {selectedLayout && (

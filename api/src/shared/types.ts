@@ -8,7 +8,6 @@ export interface ProjectDocument {
   authorName: string;
   status: "draft" | "published" | "archived";
   tags: string[];
-  azureServices: string[];
   layout: "full-width" | "side-panel";
   pageCount: number;
   currentVersion: number;

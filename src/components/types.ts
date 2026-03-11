@@ -33,7 +33,6 @@ export interface ProjectSummary {
   author: ProjectAuthor;
   status: ProjectStatus;
   tags: string[];
-  azureServices: string[];
   layout: LayoutType;
   pageCount: number;
   currentVersion: number;

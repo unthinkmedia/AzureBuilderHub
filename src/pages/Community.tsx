@@ -35,7 +35,6 @@ export const Community: React.FC = () => {
   const search = searchParams.get("q") || "";
   const sort = (searchParams.get("sort") as SortOption) || "stars";
   const tags = searchParams.get("tags")?.split(",").filter(Boolean) || [];
-  const azureServices = searchParams.get("azureServices")?.split(",").filter(Boolean) || [];
   const layout = searchParams.get("layout") || "";
 
   // Derive available filter options from all projects (unfiltered)
@@ -45,13 +44,7 @@ export const Community: React.FC = () => {
     return Array.from(set).sort();
   }, [allProjects]);
 
-  const availableServices = useMemo(() => {
-    const set = new Set<string>();
-    allProjects.forEach((p) => p.azureServices.forEach((s) => set.add(s)));
-    return Array.from(set).sort();
-  }, [allProjects]);
-
-  const activeFilterCount = tags.length + azureServices.length + (layout ? 1 : 0);
+  const activeFilterCount = tags.length + (layout ? 1 : 0);
 
   // Fetch all published projects once to populate filter options
   useEffect(() => {
@@ -66,7 +59,6 @@ export const Community: React.FC = () => {
         search: search || undefined,
         sort: sort as "stars" | "newest" | "forks",
         tags: tags.length > 0 ? tags : undefined,
-        azureServices: azureServices.length > 0 ? azureServices : undefined,
         layout: layout || undefined,
       });
       setProjects(data.items);
@@ -76,7 +68,7 @@ export const Community: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [search, sort, tags.join(","), azureServices.join(","), layout]);
+  }, [search, sort, tags.join(","), layout]);
 
   useEffect(() => {
     fetchProjects();
@@ -100,7 +92,6 @@ export const Community: React.FC = () => {
   const clearAllFilters = () => {
     const next = new URLSearchParams(searchParams);
     next.delete("tags");
-    next.delete("azureServices");
     next.delete("layout");
     setSearchParams(next);
   };
@@ -241,23 +232,6 @@ export const Community: React.FC = () => {
             </div>
           </div>
 
-          {/* Azure Services */}
-          <div className="abh-community__filter-group">
-            <h4 className="abh-community__filter-heading">Azure Services</h4>
-            <div className="abh-community__filter-chips">
-              {availableServices.map((svc) => (
-                <button
-                  key={svc}
-                  className={`abh-community__chip ${azureServices.includes(svc) ? "abh-community__chip--active" : ""}`}
-                  onClick={() => toggleArrayParam("azureServices", svc)}
-                  aria-pressed={azureServices.includes(svc)}
-                >
-                  {svc}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Layout */}
           <div className="abh-community__filter-group">
             <h4 className="abh-community__filter-heading">Layout</h4>
@@ -284,12 +258,6 @@ export const Community: React.FC = () => {
             <span key={`t-${t}`} className="abh-community__active-chip">
               {t}
               <button aria-label={`Remove ${t} filter`} onClick={() => toggleArrayParam("tags", t)}>×</button>
-            </span>
-          ))}
-          {azureServices.map((s) => (
-            <span key={`s-${s}`} className="abh-community__active-chip">
-              {s}
-              <button aria-label={`Remove ${s} filter`} onClick={() => toggleArrayParam("azureServices", s)}>×</button>
             </span>
           ))}
           {layout && (

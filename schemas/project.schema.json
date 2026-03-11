@@ -39,12 +39,6 @@
       "uniqueItems": true,
       "description": "Searchable tags (e.g., dashboard, monitoring, AI)"
     },
-    "azureServices": {
-      "type": "array",
-      "items": { "type": "string" },
-      "uniqueItems": true,
-      "description": "Azure services referenced in this project (e.g., Azure Monitor, Azure AI Services)"
-    },
     "pages": {
       "type": "array",
       "minItems": 1,

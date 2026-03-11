@@ -51,7 +51,6 @@ export const NewProject: React.FC = () => {
         name: name.trim(),
         description: description.trim(),
         tags,
-        azureServices: [],
         layout: "full-width",
       });
       navigate(`/projects/${project.id}`);

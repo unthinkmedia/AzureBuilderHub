@@ -13,7 +13,6 @@ interface MockProject {
   author: { name: string; id: string; avatarUrl: string };
   status: string;
   tags: string[];
-  azureServices: string[];
   layout: string;
   pageCount: number;
   currentVersion: number;
@@ -42,7 +41,6 @@ const mockProjects: MockProject[] = [
     author: { name: "Alex Britez", id: "user-1", avatarUrl: "" },
     status: "published",
     tags: ["identity", "security", "governance"],
-    azureServices: ["Microsoft Entra ID", "Azure Resource Manager"],
     layout: "side-panel",
     pageCount: 1,
     currentVersion: 3,
@@ -80,7 +78,6 @@ const mockProjects: MockProject[] = [
     author: { name: "Alex Britez", id: "user-1", avatarUrl: "" },
     status: "published",
     tags: ["management", "governance", "billing"],
-    azureServices: ["Azure Resource Manager", "Azure Cost Management"],
     layout: "side-panel",
     pageCount: 1,
     currentVersion: 2,
@@ -118,7 +115,6 @@ const mockProjects: MockProject[] = [
     author: { name: "Jamie Chen", id: "user-2", avatarUrl: "" },
     status: "published",
     tags: ["ai-ml", "devops", "monitoring", "sre"],
-    azureServices: ["Azure SRE Agent", "Azure Monitor", "Azure AI Services"],
     layout: "full-width",
     pageCount: 3,
     currentVersion: 4,
@@ -158,7 +154,6 @@ const mockProjects: MockProject[] = [
     author: { name: "Alex Britez", id: "user-1", avatarUrl: "" },
     status: "published",
     tags: ["serverless", "hosting", "web"],
-    azureServices: ["Azure Static Web Apps", "Azure CDN"],
     layout: "side-panel",
     pageCount: 1,
     currentVersion: 5,
@@ -197,7 +192,6 @@ const mockProjects: MockProject[] = [
     author: { name: "Sara Kim", id: "user-3", avatarUrl: "" },
     status: "published",
     tags: ["dashboard", "portal", "navigation"],
-    azureServices: ["Azure Portal"],
     layout: "full-width",
     pageCount: 1,
     currentVersion: 6,
@@ -236,7 +230,6 @@ const mockProjects: MockProject[] = [
     author: { name: "Alex Britez", id: "user-1", avatarUrl: "" },
     status: "draft",
     tags: ["management", "governance", "resources"],
-    azureServices: ["Azure Resource Manager"],
     layout: "side-panel",
     pageCount: 1,
     currentVersion: 1,
@@ -272,7 +265,6 @@ const mockProjects: MockProject[] = [
     author: { name: "Marcus Johnson", id: "user-4", avatarUrl: "" },
     status: "published",
     tags: ["ai-ml", "devops", "monitoring"],
-    azureServices: ["Azure SRE Agent", "Azure Monitor"],
     layout: "full-width",
     pageCount: 2,
     currentVersion: 2,
@@ -308,7 +300,6 @@ const mockProjects: MockProject[] = [
     author: { name: "Priya Patel", id: "user-5", avatarUrl: "" },
     status: "published",
     tags: ["devops", "monitoring", "sre"],
-    azureServices: ["Azure SRE Agent", "Azure Monitor"],
     layout: "full-width",
     pageCount: 1,
     currentVersion: 1,
@@ -532,7 +523,6 @@ export function mockApiPlugin(): Plugin {
           const params = new URL(url, "http://localhost").searchParams;
           const search = params.get("search")?.toLowerCase() ?? "";
           const tagsFilter = params.get("tags")?.split(",").filter(Boolean) ?? [];
-          const servicesFilter = params.get("azureServices")?.split(",").filter(Boolean) ?? [];
           const layoutFilter = params.get("layout") ?? "";
           const sortBy = params.get("sort") ?? "stars";
 
@@ -545,9 +535,6 @@ export function mockApiPlugin(): Plugin {
           }
           if (tagsFilter.length) {
             results = results.filter((p) => tagsFilter.every((t) => p.tags.includes(t)));
-          }
-          if (servicesFilter.length) {
-            results = results.filter((p) => servicesFilter.every((s) => p.azureServices.includes(s)));
           }
           if (layoutFilter === "full-width" || layoutFilter === "side-panel") {
             results = results.filter((p) => p.layout === layoutFilter);

@@ -25,7 +25,7 @@ export async function getProject(id: string): Promise<ProjectSummary> {
 }
 
 export async function createProject(
-  data: Pick<ProjectSummary, "name" | "description" | "tags" | "azureServices" | "layout">
+  data: Pick<ProjectSummary, "name" | "description" | "tags" | "layout">
 ): Promise<ProjectSummary> {
   return apiFetch<ProjectSummary>("/projects", {
     method: "POST",
@@ -59,7 +59,6 @@ export async function deleteProject(id: string): Promise<void> {
 export interface CommunityQuery {
   search?: string;
   tags?: string[];
-  azureServices?: string[];
   layout?: string;
   sort?: "newest" | "stars" | "forks";
   offset?: number;
@@ -75,7 +74,6 @@ export async function browseCommunity(query: CommunityQuery = {}): Promise<Commu
   const params = new URLSearchParams();
   if (query.search) params.set("search", query.search);
   if (query.tags?.length) params.set("tags", query.tags.join(","));
-  if (query.azureServices?.length) params.set("azureServices", query.azureServices.join(","));
   if (query.layout) params.set("layout", query.layout);
   if (query.sort) params.set("sort", query.sort);
   if (query.offset != null) params.set("offset", String(query.offset));

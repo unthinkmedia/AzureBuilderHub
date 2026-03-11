@@ -7,7 +7,6 @@ async function handleCommunity(req: HttpRequest, _context: InvocationContext): P
   try {
     const search = req.query.get("search") ?? "";
     const tagsParam = req.query.get("tags") ?? "";
-    const azureServicesParam = req.query.get("azureServices") ?? "";
     const layout = req.query.get("layout") ?? "";
     const sort = req.query.get("sort") ?? "stars";
     const offset = Math.max(0, parseInt(req.query.get("offset") ?? "0", 10) || 0);
@@ -28,14 +27,6 @@ async function handleCommunity(req: HttpRequest, _context: InvocationContext): P
         // Check if tag exists in the JSON array using JSON_VALUE/LIKE approach
         conditions.push(`tags LIKE @tag${i}`);
         r.input(`tag${i}`, sql.NVarChar, `%"${tags[i]}"%`);
-      }
-    }
-
-    if (azureServicesParam) {
-      const services = azureServicesParam.split(",").filter(Boolean);
-      for (let i = 0; i < services.length; i++) {
-        conditions.push(`azure_services LIKE @svc${i}`);
-        r.input(`svc${i}`, sql.NVarChar, `%"${services[i]}"%`);
       }
     }
 

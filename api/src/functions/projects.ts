@@ -40,7 +40,6 @@ async function createProject(req: HttpRequest): Promise<HttpResponseInit> {
   const id = randomUUID();
   const now = new Date().toISOString();
   const tags = Array.isArray(body.tags) ? body.tags.slice(0, 10) : [];
-  const azureServices = Array.isArray(body.azureServices) ? body.azureServices : [];
   const layout = body.layout === "side-panel" ? "side-panel" : "full-width";
 
   const r = await query();
@@ -51,14 +50,13 @@ async function createProject(req: HttpRequest): Promise<HttpResponseInit> {
     .input("authorId", user.userId)
     .input("authorName", user.userDetails)
     .input("tags", JSON.stringify(tags))
-    .input("azureServices", JSON.stringify(azureServices))
     .input("layout", layout)
     .input("createdAt", now)
     .input("updatedAt", now)
     .query(`
-      INSERT INTO projects (id, name, description, author_id, author_name, tags, azure_services, layout, created_at, updated_at)
+      INSERT INTO projects (id, name, description, author_id, author_name, tags, layout, created_at, updated_at)
       OUTPUT INSERTED.*
-      VALUES (@id, @name, @description, @authorId, @authorName, @tags, @azureServices, @layout, @createdAt, @updatedAt)
+      VALUES (@id, @name, @description, @authorId, @authorName, @tags, @layout, @createdAt, @updatedAt)
     `);
 
   return { status: 201, jsonBody: rowToProject(result.recordset[0]) };
@@ -74,7 +72,6 @@ export function rowToProject(row: Record<string, unknown>): ProjectDocument {
     authorName: row.author_name as string,
     status: row.status as ProjectDocument["status"],
     tags: JSON.parse((row.tags as string) || "[]"),
-    azureServices: JSON.parse((row.azure_services as string) || "[]"),
     layout: row.layout as ProjectDocument["layout"],
     pageCount: row.page_count as number,
     currentVersion: row.current_version as number,
