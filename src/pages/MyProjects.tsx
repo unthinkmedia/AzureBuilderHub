@@ -109,11 +109,20 @@ export const MyProjects: React.FC = () => {
 
   const handlePublishToggle = async (id: string, publish: boolean) => {
     try {
-      await publishProject(id, publish);
+      const project = projects.find((p) => p.id === id);
+      const result = await publishProject(id, publish, project ? {
+        name: project.name,
+        description: project.description,
+        tags: project.tags,
+        layout: project.layout,
+        thumbnailUrl: project.thumbnailUrl,
+        previewUrl: project.previewUrl,
+        repoUrl: project.repoUrl,
+      } : undefined);
       setProjects((prev) =>
         prev.map((p) =>
           p.id === id
-            ? { ...p, status: publish ? "published" : "draft", publishedAt: publish ? new Date().toISOString() : p.publishedAt }
+            ? { ...p, id: result.id, status: publish ? "published" : "draft", publishedAt: publish ? new Date().toISOString() : p.publishedAt }
             : p
         )
       );

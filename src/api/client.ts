@@ -43,10 +43,14 @@ export async function updateProjectMetadata(
   });
 }
 
-export async function publishProject(id: string, publish: boolean): Promise<ProjectSummary> {
+export async function publishProject(
+  id: string,
+  publish: boolean,
+  project?: Partial<Pick<ProjectSummary, "name" | "description" | "tags" | "layout" | "thumbnailUrl" | "previewUrl" | "repoUrl">>
+): Promise<ProjectSummary> {
   return apiFetch<ProjectSummary>(`/projects/${encodeURIComponent(id)}/publish`, {
     method: "PUT",
-    body: JSON.stringify({ publish }),
+    body: JSON.stringify({ publish, project }),
   });
 }
 
