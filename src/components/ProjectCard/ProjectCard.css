@@ -24,16 +24,18 @@
   display: block;
 }
 
-/* Preview overlay button — appears on hover */
-.abh-project-card__preview-btn {
+/* Thumbnail action buttons container — appears on hover */
+.abh-project-card__thumbnail-actions {
   position: absolute;
   bottom: var(--spacingVerticalS, 8px);
   right: var(--spacingHorizontalS, 8px);
+  display: flex;
+  gap: var(--spacingHorizontalXS, 4px);
   opacity: 0;
   transition: opacity 0.15s ease;
 }
 
-.abh-project-card__thumbnail:hover .abh-project-card__preview-btn {
+.abh-project-card__thumbnail:hover .abh-project-card__thumbnail-actions {
   opacity: 1;
 }
 

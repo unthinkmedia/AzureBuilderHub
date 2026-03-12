@@ -112,7 +112,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
   const isPublished = project.status === "published";
   const hasDeployedContent = project.currentVersion > 0;
-  const hasMenuActions = onClick || onDelete || onDuplicate || onShare || onOpenInVSCode || onOpenInCopilotCLI || onPublishToggle || showAddToCollection || hasDeployedContent;
+  const hasMenuActions = onClick || onDelete || onDuplicate || onShare || onOpenInVSCode || onOpenInCopilotCLI || onPublishToggle || showAddToCollection || hasDeployedContent || project.repoUrl;
 
   if (variant === "compact") {
     return (
@@ -230,21 +230,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             <span>No preview</span>
           </div>
         )}
-        {hasDeployedContent && (
-          <Button
-            className="abh-project-card__preview-btn"
-            appearance="primary"
-            size="small"
-            icon={<Open20Regular />}
-            onClick={(e) => {
-              e.stopPropagation();
-              window.open(project.previewUrl, '_blank', 'noopener,noreferrer');
-            }}
-            aria-label={`Preview ${project.name} in new window`}
-          >
-            Preview
-          </Button>
-        )}
+
       </div>
 
       {/* Header with title + description */}
@@ -305,6 +291,18 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           >
             {statusLabelMap[project.status]}
           </Badge>
+          {hasDeployedContent && (
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={<Open20Regular />}
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(project.previewUrl, '_blank', 'noopener,noreferrer');
+              }}
+              aria-label={`Preview ${project.name}`}
+            />
+          )}
           {hasMenuActions && (
             <Menu>
               <MenuTrigger disableButtonEnhancement>
@@ -332,6 +330,17 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                   {onClick && (hasDeployedContent || onPublishToggle || showAddToCollection) && (
                     <MenuDivider />
                   )}
+                  {project.repoUrl && (
+                    <MenuItem
+                      icon={<Code20Regular />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(project.repoUrl, '_blank', 'noopener,noreferrer');
+                      }}
+                    >
+                      Open on GitHub
+                    </MenuItem>
+                  )}
                   {hasDeployedContent && (
                     <MenuItem
                       icon={<Open20Regular />}
@@ -343,7 +352,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                       Open in Browser
                     </MenuItem>
                   )}
-                  {hasDeployedContent && (onPublishToggle || showAddToCollection) && (
+                  {(hasDeployedContent || project.repoUrl) && (onPublishToggle || showAddToCollection) && (
                     <MenuDivider />
                   )}
                   {onPublishToggle && (
