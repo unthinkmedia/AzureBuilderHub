@@ -262,6 +262,64 @@
 }
 
 
+/* Recent Collections */
+.abh-my-projects__recent-collections {
+  margin-bottom: 24px;
+}
+
+.abh-my-projects__recent-collections-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.abh-my-projects__recent-collections-title {
+  margin: 0;
+  font-size: var(--fontSizeBase400);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorNeutralForeground1, #242424);
+}
+
+.abh-my-projects__recent-collections-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+}
+
+.abh-my-projects__collection-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground1, #ffffff);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.abh-my-projects__collection-chip:hover {
+  border-color: var(--colorBrandStroke1, #0078d4);
+  background: var(--colorBrandBackground2, #ebf3fc);
+  box-shadow: var(--shadow2);
+}
+
+.abh-my-projects__collection-chip-name {
+  font-size: var(--fontSizeBase300);
+  font-weight: var(--fontWeightMedium);
+  color: var(--colorNeutralForeground1, #242424);
+}
+
+.abh-my-projects__collection-chip-count {
+  font-size: var(--fontSizeBase200);
+  color: var(--colorNeutralForeground3, #707070);
+  background: var(--colorNeutralBackground3, #f5f5f5);
+  padding: 2px 8px;
+  border-radius: var(--borderRadiusCircular);
+}
+
 /* Grid */
 .abh-my-projects__grid {
   display: grid;

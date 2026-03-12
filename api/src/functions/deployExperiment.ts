@@ -1,9 +1,9 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { query } from "../shared/db.js";
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import { rowToProject } from "./projects.js";
 import { generateUploadSasUrl } from "../shared/storage.js";
-import { validateDeployToken } from "../shared/deploy-auth.js";
+import { validateDeployToken, type DeployIdentity } from "../shared/deploy-auth.js";
 
 /**
  * Deploy endpoint called by Playground deploy scripts.
@@ -21,16 +21,27 @@ import { validateDeployToken } from "../shared/deploy-auth.js";
  * and returns a SAS upload URL for the client to push files.
  */
 async function handleDeploy(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
-  // ── Auth: validate AAD token from custom header (SWA intercepts Authorization) ──
-  let identity;
+  // ── Auth: try AAD token first, fall back to deploy key ──
+  let identity: DeployIdentity | null = null;
   try {
     identity = await validateDeployToken(req.headers.get("x-deploy-token"));
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Auth configuration error";
-    return { status: 500, body: msg };
+  } catch {
+    // AAD auth not configured or validation failed — will try deploy key
   }
+
+  let deployKeyAuth = false;
   if (!identity) {
-    return { status: 401, body: "Valid Microsoft authentication required. Run: az login" };
+    const deployKey = req.headers.get("x-deploy-key");
+    const expectedKey = process.env.DEPLOY_API_KEY;
+    if (
+      deployKey && expectedKey &&
+      deployKey.length === expectedKey.length &&
+      timingSafeEqual(Buffer.from(deployKey), Buffer.from(expectedKey))
+    ) {
+      deployKeyAuth = true;
+    } else {
+      return { status: 401, body: "Valid authentication required. Provide x-deploy-token (AAD) or x-deploy-key." };
+    }
   }
 
   try {
@@ -48,8 +59,18 @@ async function handleDeploy(req: HttpRequest, _context: InvocationContext): Prom
     const now = new Date().toISOString();
     const tags = Array.isArray(body.tags) ? body.tags.slice(0, 10) : [];
     const layout = body.layout === "side-panel" ? "side-panel" : "full-width";
-    const authorId = `aad:${identity.userId}`;
-    const authorName = body.authorName || identity.userName || identity.userEmail;
+    // For deploy-key auth, derive identity from request body
+    if (deployKeyAuth && !identity) {
+      identity = {
+        userId: body.repoOwner || "unknown",
+        userName: body.authorName || body.repoOwner || "GitHub Deploy",
+        userEmail: "",
+        tenantId: "deploy-key",
+      };
+    }
+
+    const authorId = deployKeyAuth ? `github:${identity!.userId}` : `aad:${identity!.userId}`;
+    const authorName = body.authorName || identity!.userName || identity!.userEmail;
     const pageCount = typeof body.pageCount === "number" ? body.pageCount : 1;
 
     // ── Find existing project by author + name ──

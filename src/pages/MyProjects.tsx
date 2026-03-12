@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { searchGitHubReposByTopic, fetchExperimentJson } from "../api/client";
+import { searchGitHubReposByTopic, fetchExperimentJson, publishProject, listCollections } from "../api/client";
 import type { GitHubRepo, ExperimentJson } from "../api/client";
 import { Spinner, Button } from "@fluentui/react-components";
 import { ProjectCard } from "../components/ProjectCard";
-import type { ProjectSummary } from "../components/types";
+import type { ProjectSummary, CollectionSummary } from "../components/types";
 import type { ProjectCardVariant } from "../components/ProjectCard";
 import "./MyProjects.css";
 
@@ -28,7 +29,7 @@ function repoToProject(
       id: repo.owner.login,
       avatarUrl: repo.owner.avatar_url,
     },
-    status: "published",
+    status: experiment?.status ?? "draft",
     tags: experiment?.tags ?? repo.topics.filter((t) => t !== "vibe-platform"),
     layout: (experiment?.layout as "full-width" | "side-panel") || "full-width",
     pageCount: 1,
@@ -47,6 +48,7 @@ function repoToProject(
 
 export const MyProjects: React.FC = () => {
   const { user, login } = useAuth();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +57,7 @@ export const MyProjects: React.FC = () => {
   const [selectedLayout, setSelectedLayout] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ProjectCardVariant>("grid");
+  const [recentCollections, setRecentCollections] = useState<CollectionSummary[]>([]);
 
   const fetchProjects = useCallback(async () => {
     if (!user) return;
@@ -84,15 +87,38 @@ export const MyProjects: React.FC = () => {
   useEffect(() => {
     if (user) {
       fetchProjects();
+      listCollections()
+        .then((cols) => {
+          const sorted = [...cols].sort(
+            (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+          );
+          setRecentCollections(sorted.slice(0, 4));
+        })
+        .catch(() => {});
     } else {
       setLoading(false);
     }
   }, [user, fetchProjects]);
 
-  const handleOpenRepo = (id: string) => {
+  const handleOpenProject = (id: string) => {
     const project = projects.find((p) => p.id === id);
-    if (project?.repoUrl) {
-      window.open(project.repoUrl, "_blank", "noopener");
+    if (project) {
+      navigate(`/projects/${id}`, { state: { project } });
+    }
+  };
+
+  const handlePublishToggle = async (id: string, publish: boolean) => {
+    try {
+      await publishProject(id, publish);
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? { ...p, status: publish ? "published" : "draft", publishedAt: publish ? new Date().toISOString() : p.publishedAt }
+            : p
+        )
+      );
+    } catch (err) {
+      console.error("Failed to toggle publish status", err);
     }
   };
 
@@ -307,16 +333,51 @@ export const MyProjects: React.FC = () => {
           )}
         </div>
       ) : (
-        <div className={viewMode === "compact" ? "abh-my-projects__list" : "abh-my-projects__grid"}>
-          {filtered.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              onClick={() => handleOpenRepo(project.id)}
-              variant={viewMode}
-            />
-          ))}
-        </div>
+        <>
+          {/* Recent Collections */}
+          {recentCollections.length > 0 && (
+            <div className="abh-my-projects__recent-collections">
+              <div className="abh-my-projects__recent-collections-header">
+                <h3 className="abh-my-projects__recent-collections-title">Recent Collections</h3>
+                <Button
+                  appearance="subtle"
+                  size="small"
+                  onClick={() => navigate("/collections")}
+                >
+                  Show more
+                </Button>
+              </div>
+              <div className="abh-my-projects__recent-collections-row">
+                {recentCollections.map((col) => (
+                  <button
+                    key={col.id}
+                    className="abh-my-projects__collection-chip"
+                    onClick={() => navigate(`/collections/${col.id}`)}
+                    aria-label={`Collection: ${col.name} (${col.projectIds.length} projects)`}
+                  >
+                    <span className="abh-my-projects__collection-chip-name">{col.name}</span>
+                    <span className="abh-my-projects__collection-chip-count">
+                      {col.projectIds.length}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className={viewMode === "compact" ? "abh-my-projects__list" : "abh-my-projects__grid"}>
+            {filtered.map((project) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onClick={() => handleOpenProject(project.id)}
+                onPublishToggle={handlePublishToggle}
+                showAddToCollection
+                variant={viewMode}
+              />
+            ))}
+          </div>
+        </>
       )}
 
 

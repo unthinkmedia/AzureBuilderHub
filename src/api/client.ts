@@ -231,6 +231,7 @@ export interface ExperimentJson {
   layout?: string;
   thumbnailUrl?: string;
   previewUrl?: string;
+  status?: "draft" | "published" | "archived";
 }
 
 /** Cached GitHub token fetched from the local auth session */

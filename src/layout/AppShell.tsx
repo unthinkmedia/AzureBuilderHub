@@ -1,7 +1,16 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { Button } from "@fluentui/react-components";
+import {
+  Button,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItem,
+  MenuDivider,
+} from "@fluentui/react-components";
+import { OpenRegular, SignOutRegular } from "@fluentui/react-icons";
 import "./AppShell.css";
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -46,15 +55,30 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         </nav>
         <div className="abh-shell__actions">
           {user ? (
-            <div className="abh-shell__user">
-              <div className="abh-shell__avatar" aria-hidden="true">
-                {user.userDetails.charAt(0).toUpperCase()}
-              </div>
-              <span className="abh-shell__user-name">{user.userDetails}</span>
-              <Button appearance="subtle" onClick={logout}>
-                Sign out
-              </Button>
-            </div>
+            <Menu>
+              <MenuTrigger disableButtonEnhancement>
+                <button className="abh-shell__user" type="button" aria-label="User menu">
+                  <div className="abh-shell__avatar" aria-hidden="true">
+                    {user.userDetails.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="abh-shell__user-name">{user.userDetails}</span>
+                </button>
+              </MenuTrigger>
+              <MenuPopover>
+                <MenuList>
+                  <MenuItem
+                    icon={<OpenRegular />}
+                    onClick={() => window.open(`https://github.com/${user.userDetails}`, "_blank", "noopener")}
+                  >
+                    GitHub Profile
+                  </MenuItem>
+                  <MenuDivider />
+                  <MenuItem icon={<SignOutRegular />} onClick={logout}>
+                    Sign out
+                  </MenuItem>
+                </MenuList>
+              </MenuPopover>
+            </Menu>
           ) : (
             <Button appearance="primary" onClick={login}>
               Sign in

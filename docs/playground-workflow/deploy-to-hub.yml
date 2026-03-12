@@ -40,6 +40,12 @@ jobs:
         with:
           path: dist
 
+      - name: Upload dist for Hub
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+
   deploy-pages:
     needs: build
     runs-on: ubuntu-latest
@@ -60,6 +66,16 @@ jobs:
         with:
           sparse-checkout: experiment.json
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
       - name: Read experiment metadata
         id: meta
         run: |
@@ -77,12 +93,11 @@ jobs:
           echo "layout=${LAYOUT:-full-width}" >> "$GITHUB_OUTPUT"
 
       - name: Register experiment with Hub
+        id: register
         env:
           HUB_API_URL: ${{ vars.HUB_API_URL }}
           DEPLOY_KEY: ${{ secrets.HUB_DEPLOY_KEY }}
         run: |
-          PREVIEW_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${HUB_API_URL}/api/deploy" \
             -H "Content-Type: application/json" \
             -H "x-deploy-key: ${DEPLOY_KEY}" \
@@ -91,7 +106,6 @@ jobs:
               --arg repo "${{ github.event.repository.name }}" \
               --arg name "${{ steps.meta.outputs.name }}" \
               --arg desc "${{ steps.meta.outputs.description }}" \
-              --arg url "${PREVIEW_URL}" \
               --arg layout "${{ steps.meta.outputs.layout }}" \
               --argjson tags '${{ steps.meta.outputs.tags }}' \
               --argjson services '${{ steps.meta.outputs.services }}' \
@@ -100,7 +114,6 @@ jobs:
                 repoName: $repo,
                 experimentName: $name,
                 description: $desc,
-                previewUrl: $url,
                 layout: $layout,
                 tags: $tags,
                 azureServices: $services
@@ -118,4 +131,48 @@ jobs:
             exit 1
           fi
 
-          echo "::notice::Experiment deployed and registered with Hub successfully"
+          # Extract upload details from response
+          UPLOAD_URL=$(echo "$BODY" | jq -r '.uploadUrl')
+          PROJECT_ID=$(echo "$BODY" | jq -r '.projectId')
+          VERSION=$(echo "$BODY" | jq -r '.version')
+
+          echo "upload_url=${UPLOAD_URL}" >> "$GITHUB_OUTPUT"
+          echo "project_id=${PROJECT_ID}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+          echo "::notice::Experiment registered — project ${PROJECT_ID} v${VERSION}"
+
+      - name: Capture screenshot
+        run: |
+          npm init -y > /dev/null 2>&1
+          npm install playwright > /dev/null 2>&1
+          npx playwright install --with-deps chromium
+          python3 -m http.server 8080 --directory dist &
+          sleep 2
+          node << 'SCREENSHOT'
+          const { chromium } = require('playwright');
+          (async () => {
+            const browser = await chromium.launch();
+            const page = await browser.newPage({ viewport: { width: 1200, height: 630 } });
+            await page.goto('http://localhost:8080', { waitUntil: 'networkidle', timeout: 30000 });
+            await page.screenshot({ path: 'dist/thumbnail.png', type: 'png' });
+            await browser.close();
+            console.log('Screenshot captured: dist/thumbnail.png');
+          })();
+          SCREENSHOT
+
+      - name: Upload to Hub blob storage
+        if: steps.register.outputs.upload_url != ''
+        env:
+          UPLOAD_URL: ${{ steps.register.outputs.upload_url }}
+          PROJECT_ID: ${{ steps.register.outputs.project_id }}
+          VERSION: ${{ steps.register.outputs.version }}
+        run: |
+          # Construct destination URL with project path
+          BASE_URL="${UPLOAD_URL%%\?*}"
+          SAS_TOKEN="${UPLOAD_URL#*\?}"
+          DEST="${BASE_URL}/${PROJECT_ID}/v${VERSION}?${SAS_TOKEN}"
+
+          azcopy copy "dist/*" "$DEST" --recursive --put-md5
+
+          echo "::notice::Files uploaded to blob storage at ${PROJECT_ID}/v${VERSION}"

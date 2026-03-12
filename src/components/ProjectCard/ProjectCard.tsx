@@ -25,6 +25,7 @@ import {
   Code20Regular,
   WindowConsole20Regular,
   Open20Regular,
+  Info20Regular,
 } from "@fluentui/react-icons";
 import type { ProjectSummary, ProjectStatus } from "../types";
 import { StatCounter } from "../StatCounter";
@@ -91,7 +92,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 }) => {
   const [showCollectionDialog, setShowCollectionDialog] = useState(false);
 
-  const handleClick = () => onClick?.(project.id);
+  const handleClick = () => {
+    onClick?.(project.id);
+  };
 
   const handleStarClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -106,7 +109,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   const timeAgo = getRelativeTime(project.updatedAt);
 
   const hasOpenInBrowser = !!project.previewUrl;
-  const hasMenuActions = onDelete || onDuplicate || onShare || onOpenInVSCode || onOpenInCopilotCLI || onPublishToggle || showAddToCollection || hasOpenInBrowser;
+  const hasMenuActions = onClick || onDelete || onDuplicate || onShare || onOpenInVSCode || onOpenInCopilotCLI || onPublishToggle || showAddToCollection || hasOpenInBrowser;
 
   const isPublished = project.status === "published";
 
@@ -284,6 +287,20 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               </MenuTrigger>
               <MenuPopover>
                 <MenuList>
+                  {onClick && (
+                    <MenuItem
+                      icon={<Info20Regular />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onClick(project.id);
+                      }}
+                    >
+                      View details
+                    </MenuItem>
+                  )}
+                  {onClick && (hasOpenInBrowser || onPublishToggle || showAddToCollection) && (
+                    <MenuDivider />
+                  )}
                   {hasOpenInBrowser && (
                     <MenuItem
                       icon={<Open20Regular />}

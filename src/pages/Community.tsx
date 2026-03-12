@@ -302,6 +302,7 @@ export const Community: React.FC = () => {
               onClick={(id) => navigate(`/projects/${id}`)}
               onStar={handleStar}
               isStarred={project.isStarred}
+              showAddToCollection
               variant={viewMode}
             />
           ))}

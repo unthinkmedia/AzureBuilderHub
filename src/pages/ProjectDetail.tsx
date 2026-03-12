@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import {
   getProject,
@@ -55,6 +55,8 @@ import {
   Library20Regular,
   DesignIdeas20Regular,
   Target20Regular,
+  Globe24Regular,
+  Warning20Regular,
 } from "@fluentui/react-icons";
 import "./ProjectDetail.css";
 
@@ -65,10 +67,15 @@ interface ProjectFull extends ProjectSummary {
 export const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
-  const [project, setProject] = useState<ProjectFull | null>(null);
+
+  // Accept project data passed via route state (from MyProjects)
+  const routeProject = (location.state as { project?: ProjectFull })?.project ?? null;
+
+  const [project, setProject] = useState<ProjectFull | null>(routeProject);
   const [forks, setForks] = useState<ProjectSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!routeProject);
   const [error, setError] = useState<string | null>(null);
   const [forking, setForking] = useState(false);
   const [showCollectionDialog, setShowCollectionDialog] = useState(false);
@@ -79,6 +86,11 @@ export const ProjectDetail: React.FC = () => {
 
   const fetchData = useCallback(async () => {
     if (!id) return;
+    // Skip API fetch if project was passed via route state
+    if (routeProject) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -93,7 +105,7 @@ export const ProjectDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, routeProject]);
 
   useEffect(() => {
     fetchData();
@@ -205,22 +217,8 @@ export const ProjectDetail: React.FC = () => {
         />
       )}
 
-      {/* Hero section: screenshot + project info side by side */}
+      {/* Hero section: info + actions */}
       <div className="abh-detail__hero">
-        <div className="abh-detail__screenshot">
-          {project.thumbnailUrl ? (
-            <img
-              src={project.thumbnailUrl}
-              alt={`Screenshot of ${project.name}`}
-              className="abh-detail__screenshot-img"
-            />
-          ) : (
-            <div className="abh-detail__screenshot-placeholder">
-              <span>No preview available</span>
-            </div>
-          )}
-        </div>
-
         <div className="abh-detail__info">
           <div className="abh-detail__title-row">
             <h1 className="abh-detail__name">{project.name}</h1>
@@ -274,18 +272,30 @@ export const ProjectDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Actions */}
+          {/* Primary Actions */}
           <div className="abh-detail__actions">
-            {project.previewUrl && (
+            {project.repoUrl && (
               <Button
                 appearance="primary"
+                size="small"
+                icon={<Code20Regular />}
+                onClick={() =>
+                  window.open(project.repoUrl, "_blank", "noopener,noreferrer")
+                }
+              >
+                Open on GitHub
+              </Button>
+            )}
+            {project.previewUrl && (
+              <Button
+                appearance="secondary"
                 size="small"
                 icon={<Open24Regular />}
                 onClick={() =>
                   window.open(project.previewUrl, "_blank", "noopener,noreferrer")
                 }
               >
-                Open in Browser
+                Open Preview
               </Button>
             )}
             <StarToggleButton
@@ -393,6 +403,35 @@ export const ProjectDetail: React.FC = () => {
             </Menu>
           </div>
         </div>
+      </div>
+
+      {/* Live Preview */}
+      <div className="abh-detail__preview-section">
+        <h3 className="abh-detail__section-title">
+          <Globe24Regular />
+          Preview
+        </h3>
+        {project.previewUrl ? (
+          <div className="abh-detail__preview-frame-wrapper">
+            <iframe
+              src={project.previewUrl}
+              title={`Preview of ${project.name}`}
+              className="abh-detail__preview-frame"
+              sandbox="allow-scripts allow-same-origin"
+            />
+          </div>
+        ) : (
+          <div className="abh-detail__no-preview">
+            <Warning20Regular />
+            <div className="abh-detail__no-preview-content">
+              <span className="abh-detail__no-preview-title">No preview available</span>
+              <Caption1>
+                Publish your HTML to a static host (e.g. GitHub Pages or Azure Static Web Apps),
+                then add <code>previewUrl</code> to your <code>experiment.json</code> to see a live preview here.
+              </Caption1>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
