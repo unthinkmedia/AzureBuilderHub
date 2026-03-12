@@ -6,7 +6,6 @@ import { Community } from "./pages/Community";
 import { Collections } from "./pages/Collections";
 import { ProjectDetail } from "./pages/ProjectDetail";
 import { NewProject } from "./pages/NewProject";
-import { Library } from "./pages/Library";
 
 export const App: React.FC = () => {
   return (
@@ -14,7 +13,6 @@ export const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/my-projects" replace />} />
         <Route path="/my-projects" element={<MyProjects />} />
-        <Route path="/library" element={<Library />} />
         <Route path="/collections" element={<Collections />} />
         <Route path="/collections/:collectionId" element={<Collections />} />
         <Route path="/community" element={<Community />} />

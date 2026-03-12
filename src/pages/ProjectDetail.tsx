@@ -3,7 +3,6 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import {
   getProject,
-  listForks,
   forkProject,
   starProject,
   unstarProject,
@@ -14,13 +13,11 @@ import { ForkAttributionBanner } from "../components/ForkAttributionBanner";
 import { StarToggleButton } from "../components/StarToggleButton";
 import { AddToCollectionDialog } from "../components/AddToCollectionDialog";
 import { ShareProjectDialog } from "../components/ShareProjectDialog";
-import { ProjectCard } from "../components/ProjectCard";
 import type { ProjectSummary, ProjectStatus } from "../components/types";
 import {
   Spinner,
   Button,
   Badge,
-  CounterBadge,
   Caption1,
   Avatar,
   Menu,
@@ -30,14 +27,10 @@ import {
   MenuItem,
   MenuDivider,
   Tooltip,
-  Link,
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbButton,
   BreadcrumbDivider,
-  TabList,
-  Tab,
-  type SelectTabData,
 } from "@fluentui/react-components";
 import {
   BranchFork24Regular,
@@ -52,9 +45,6 @@ import {
   Delete20Regular,
   Open24Regular,
   Copy20Regular,
-  Library20Regular,
-  DesignIdeas20Regular,
-  Target20Regular,
   Globe24Regular,
   Warning20Regular,
 } from "@fluentui/react-icons";
@@ -74,13 +64,11 @@ export const ProjectDetail: React.FC = () => {
   const routeProject = (location.state as { project?: ProjectFull })?.project ?? null;
 
   const [project, setProject] = useState<ProjectFull | null>(routeProject);
-  const [forks, setForks] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(!routeProject);
   const [error, setError] = useState<string | null>(null);
   const [forking, setForking] = useState(false);
   const [showCollectionDialog, setShowCollectionDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
-  const [selectedTab, setSelectedTab] = useState<string>("overview");
 
   const isOwner = !!(user && project?.author.id === user.userId);
 
@@ -94,12 +82,8 @@ export const ProjectDetail: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const [proj, forkedProjects] = await Promise.all([
-        getProject(id),
-        listForks(id),
-      ]);
+      const proj = await getProject(id);
       setProject(proj as ProjectFull);
-      setForks(forkedProjects);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load project");
     } finally {
@@ -186,8 +170,6 @@ export const ProjectDetail: React.FC = () => {
     published: "success" as const,
     archived: "important" as const,
   };
-
-  const STORYBOOK_BASE = "http://localhost:6006/?path=/docs/";
 
   return (
     <div className="abh-detail">
@@ -430,174 +412,6 @@ export const ProjectDetail: React.FC = () => {
                 then add <code>previewUrl</code> to your <code>experiment.json</code> to see a live preview here.
               </Caption1>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Tabs */}
-      <TabList
-        selectedValue={selectedTab}
-        onTabSelect={(_e, data: SelectTabData) => setSelectedTab(data.value as string)}
-        className="abh-detail__tabs"
-      >
-        <Tab value="overview">
-          Core Jobs to be Done
-          {(project.jtbd?.length ?? 0) > 0 && (
-            <CounterBadge
-              count={project.jtbd?.length ?? 0}
-              appearance="filled"
-              color="informative"
-              size="small"
-              style={{ marginLeft: 6 }}
-            />
-          )}
-        </Tab>
-        <Tab value="derived">
-          Derived Projects
-          {forks.length > 0 && (
-            <CounterBadge
-              count={forks.length}
-              appearance="filled"
-              color="informative"
-              size="small"
-              style={{ marginLeft: 6 }}
-            />
-          )}
-        </Tab>
-        <Tab value="components">
-          Components
-          {((project.storybookComponents?.length ?? 0) + (project.newComponents?.length ?? 0)) > 0 && (
-            <CounterBadge
-              count={(project.storybookComponents?.length ?? 0) + (project.newComponents?.length ?? 0)}
-              appearance="filled"
-              color="informative"
-              size="small"
-              style={{ marginLeft: 6 }}
-            />
-          )}
-        </Tab>
-      </TabList>
-
-      <div className="abh-detail__tab-content">
-        {/* ── Tab: Core Jobs to be Done ── */}
-        {selectedTab === "overview" && (
-          <>
-            {project.jtbd && project.jtbd.length > 0 && (
-              <div className="abh-detail__jtbd">
-                <h3 className="abh-detail__section-title">
-                  <Target20Regular />
-                  Jobs to be Done
-                </h3>
-                <ul className="abh-detail__jtbd-list">
-                  {project.jtbd.map((job, i) => (
-                    <li key={i} className="abh-detail__jtbd-item">
-                      {job}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-          </>
-        )}
-
-        {/* ── Tab: Derived Projects ── */}
-        {selectedTab === "derived" && (
-          <div className="abh-detail__derived">
-            {forks.length > 0 ? (
-              <>
-                <h3 className="abh-detail__section-title">
-                  Derived Projects
-                  <Caption1 className="abh-detail__derived-count">
-                    {forks.length} project{forks.length !== 1 ? "s" : ""} built from this
-                  </Caption1>
-                </h3>
-                <div className="abh-detail__derived-grid">
-                  {forks.map((fork) => (
-                    <ProjectCard
-                      key={fork.id}
-                      project={fork}
-                      onClick={(forkId) => navigate(`/projects/${forkId}`)}
-                      variant="compact"
-                    />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <Caption1 className="abh-detail__empty-tab">
-                No derived projects yet.
-              </Caption1>
-            )}
-          </div>
-        )}
-
-        {/* ── Tab: Components ── */}
-        {selectedTab === "components" && (
-          <div className="abh-detail__components-section">
-            {project.storybookComponents && project.storybookComponents.length > 0 && (
-              <div className="abh-detail__component-group">
-                <h3 className="abh-detail__section-title">
-                  <Library20Regular />
-                  Storybook Components
-                  <Caption1 className="abh-detail__derived-count">
-                    {project.storybookComponents.length} component{project.storybookComponents.length !== 1 ? "s" : ""}
-                  </Caption1>
-                </h3>
-                <div className="abh-detail__component-list">
-                  {project.storybookComponents.map((comp) => (
-                    <Link
-                      key={comp.name}
-                      href={`${STORYBOOK_BASE}${comp.storyPath}`}
-                      target="_blank"
-                      className="abh-detail__component-link"
-                    >
-                      <Badge appearance="outline" color="brand" size="medium">
-                        {comp.name}
-                      </Badge>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {project.newComponents && project.newComponents.length > 0 && (
-              <div className="abh-detail__component-group">
-                <h3 className="abh-detail__section-title">
-                  <DesignIdeas20Regular />
-                  Custom Components
-                  <Caption1 className="abh-detail__derived-count">
-                    {project.newComponents.length} component{project.newComponents.length !== 1 ? "s" : ""}
-                  </Caption1>
-                </h3>
-                <div className="abh-detail__new-component-list">
-                  {project.newComponents.map((comp) => (
-                    <div key={comp.name} className="abh-detail__new-component">
-                      <Badge appearance="tint" color="subtle" size="medium">
-                        {comp.name}
-                      </Badge>
-                      <Caption1 className="abh-detail__new-component-desc">
-                        {comp.description}
-                      </Caption1>
-                      {comp.sourcePath && (
-                        <Link
-                          href={comp.sourcePath}
-                          target="_blank"
-                          className="abh-detail__component-link"
-                        >
-                          <Code20Regular />
-                        </Link>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {!project.storybookComponents?.length && !project.newComponents?.length && (
-              <Caption1 className="abh-detail__empty-tab">
-                No components documented yet.
-              </Caption1>
-            )}
           </div>
         )}
       </div>

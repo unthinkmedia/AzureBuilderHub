@@ -35,12 +35,6 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
             My Projects
           </NavLink>
           <NavLink
-            to="/library"
-            className={({ isActive }) => `abh-shell__link ${isActive ? "abh-shell__link--active" : ""}`}
-          >
-            Library
-          </NavLink>
-          <NavLink
             to="/collections"
             className={({ isActive }) => `abh-shell__link ${isActive ? "abh-shell__link--active" : ""}`}
           >
