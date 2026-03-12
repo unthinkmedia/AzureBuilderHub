@@ -16,6 +16,7 @@ export interface ProjectDocument {
   forkedFrom: { projectId: string; projectName: string; authorName: string } | null;
   thumbnailUrl: string;
   previewUrl: string;
+  repoUrl: string;
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;

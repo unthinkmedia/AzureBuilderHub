@@ -41,6 +41,7 @@ async function createProject(req: HttpRequest): Promise<HttpResponseInit> {
   const now = new Date().toISOString();
   const tags = Array.isArray(body.tags) ? body.tags.slice(0, 10) : [];
   const layout = body.layout === "side-panel" ? "side-panel" : "full-width";
+  const repoUrl = (typeof body.repoUrl === "string" ? body.repoUrl.trim() : "");
 
   const r = await query();
   const result = await r
@@ -51,12 +52,13 @@ async function createProject(req: HttpRequest): Promise<HttpResponseInit> {
     .input("authorName", user.userDetails)
     .input("tags", JSON.stringify(tags))
     .input("layout", layout)
+    .input("repoUrl", repoUrl)
     .input("createdAt", now)
     .input("updatedAt", now)
     .query(`
-      INSERT INTO projects (id, name, description, author_id, author_name, tags, layout, created_at, updated_at)
+      INSERT INTO projects (id, name, description, author_id, author_name, tags, layout, repo_url, created_at, updated_at)
       OUTPUT INSERTED.*
-      VALUES (@id, @name, @description, @authorId, @authorName, @tags, @layout, @createdAt, @updatedAt)
+      VALUES (@id, @name, @description, @authorId, @authorName, @tags, @layout, @repoUrl, @createdAt, @updatedAt)
     `);
 
   return { status: 201, jsonBody: rowToProject(result.recordset[0]) };
@@ -91,6 +93,7 @@ export function rowToProject(row: Record<string, unknown>): ProjectDocument & { 
         : null,
     thumbnailUrl: `/api/projects/${row.id}/preview/thumbnail.png`,
     previewUrl: `/api/projects/${row.id}/preview/`,
+    repoUrl: (row.repo_url as string) || '',
     createdAt: (row.created_at as Date)?.toISOString?.() ?? (row.created_at as string),
     updatedAt: (row.updated_at as Date)?.toISOString?.() ?? (row.updated_at as string),
     publishedAt: row.published_at ? ((row.published_at as Date)?.toISOString?.() ?? (row.published_at as string)) : null,

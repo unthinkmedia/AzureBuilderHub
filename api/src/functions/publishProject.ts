@@ -48,6 +48,8 @@ async function handlePublish(req: HttpRequest, _context: InvocationContext): Pro
       const tags = Array.isArray(body.project.tags) ? body.project.tags.slice(0, 10) : [];
       const layout = body.project.layout === "side-panel" ? "side-panel" : "full-width";
 
+      const repoUrl = (body.project.repoUrl ?? "").trim();
+
       const rInsert = await query();
       await rInsert
         .input("id", projectId)
@@ -57,13 +59,14 @@ async function handlePublish(req: HttpRequest, _context: InvocationContext): Pro
         .input("authorName", user.userDetails)
         .input("tags", JSON.stringify(tags))
         .input("layout", layout)
+        .input("repoUrl", repoUrl)
         .input("status", newStatus)
         .input("createdAt", now)
         .input("updatedAt", now)
         .input("publishedAt", now)
         .query(`
-          INSERT INTO projects (id, name, description, author_id, author_name, tags, layout, status, created_at, updated_at, published_at)
-          VALUES (@id, @name, @description, @authorId, @authorName, @tags, @layout, @status, @createdAt, @updatedAt, @publishedAt)
+          INSERT INTO projects (id, name, description, author_id, author_name, tags, layout, repo_url, status, created_at, updated_at, published_at)
+          VALUES (@id, @name, @description, @authorId, @authorName, @tags, @layout, @repoUrl, @status, @createdAt, @updatedAt, @publishedAt)
         `);
     } else {
       const project = result.recordset[0];
