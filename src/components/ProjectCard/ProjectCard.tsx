@@ -330,17 +330,15 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                   {onClick && (hasDeployedContent || onPublishToggle || showAddToCollection) && (
                     <MenuDivider />
                   )}
-                  {project.repoUrl && (
-                    <MenuItem
-                      icon={<Code20Regular />}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        window.open(project.repoUrl, '_blank', 'noopener,noreferrer');
-                      }}
-                    >
-                      Open on GitHub
-                    </MenuItem>
-                  )}
+                  <MenuItem
+                    icon={<Code20Regular />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(project.repoUrl || 'https://github.com/unthinkmedia/AzureBuilderPlayground', '_blank', 'noopener,noreferrer');
+                    }}
+                  >
+                    GitHub Repo
+                  </MenuItem>
                   {hasDeployedContent && (
                     <MenuItem
                       icon={<Open20Regular />}
@@ -352,7 +350,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                       Open in Browser
                     </MenuItem>
                   )}
-                  {(hasDeployedContent || project.repoUrl) && (onPublishToggle || showAddToCollection) && (
+                  {(onPublishToggle || showAddToCollection) && (
                     <MenuDivider />
                   )}
                   {onPublishToggle && (
