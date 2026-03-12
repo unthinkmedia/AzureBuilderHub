@@ -41,11 +41,25 @@
   border-radius: var(--borderRadiusMedium);
   padding: 20px;
   background: var(--colorNeutralBackground1, #ffffff);
+  position: relative;
 }
 
 .abh-collection-card:hover {
   box-shadow: var(--shadow4);
   border-color: var(--colorNeutralStroke1, #d1d1d1);
+}
+
+.abh-collection-card__more {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.abh-collection-card:hover .abh-collection-card__more,
+.abh-collection-card__more:focus-within {
+  opacity: 1;
 }
 
 .abh-collection-card__name {
@@ -219,4 +233,24 @@
   flex-direction: column;
   gap: 16px;
   min-width: 320px;
+}
+
+/* ── Share dialog ── */
+.abh-collections__share-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 320px;
+}
+
+.abh-collections__share-desc {
+  font-size: var(--fontSizeBase300);
+  color: var(--colorNeutralForeground2, #616161);
+  margin: 0;
+}
+
+.abh-collections__share-link-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }

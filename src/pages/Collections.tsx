@@ -22,7 +22,19 @@ import {
   Input,
   Textarea,
   Field,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItem,
+  MenuDivider,
 } from "@fluentui/react-components";
+import {
+  MoreHorizontal20Regular,
+  Delete20Regular,
+  Share20Regular,
+  Edit20Regular,
+} from "@fluentui/react-icons";
 import { ProjectCard } from "../components/ProjectCard";
 import type { CollectionSummary, ProjectSummary } from "../components/types";
 import type { ProjectCardVariant } from "../components/ProjectCard";
@@ -33,7 +45,10 @@ const CollectionCard: React.FC<{
   collection: CollectionSummary;
   projects: ProjectSummary[];
   onClick: () => void;
-}> = ({ collection, projects, onClick }) => {
+  onDelete: (id: string) => void;
+  onShare: (collection: CollectionSummary) => void;
+  onEdit: (collection: CollectionSummary) => void;
+}> = ({ collection, projects, onClick, onDelete, onShare, onEdit }) => {
   const thumbProjects = projects
     .filter((p) => collection.projectIds.includes(p.id))
     .slice(0, 4);
@@ -44,6 +59,42 @@ const CollectionCard: React.FC<{
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
       aria-label={`Collection: ${collection.name}`}
     >
+      <div className="abh-collection-card__more">
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={<MoreHorizontal20Regular />}
+              onClick={(e) => e.stopPropagation()}
+              aria-label="More actions"
+            />
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList>
+              <MenuItem
+                icon={<Edit20Regular />}
+                onClick={(e) => { e.stopPropagation(); onEdit(collection); }}
+              >
+                Edit
+              </MenuItem>
+              <MenuItem
+                icon={<Share20Regular />}
+                onClick={(e) => { e.stopPropagation(); onShare(collection); }}
+              >
+                Share collection
+              </MenuItem>
+              <MenuDivider />
+              <MenuItem
+                icon={<Delete20Regular />}
+                onClick={(e) => { e.stopPropagation(); onDelete(collection.id); }}
+              >
+                Delete
+              </MenuItem>
+            </MenuList>
+          </MenuPopover>
+        </Menu>
+      </div>
       {thumbProjects.length > 0 && (
         <div className="abh-collection-card__thumbnails">
           {thumbProjects.map((p) => (
@@ -91,7 +142,13 @@ export const Collections: React.FC = () => {
   const [showEdit, setShowEdit] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
+  const [editingCollection, setEditingCollection] = useState<CollectionSummary | null>(null);
   const [viewMode, setViewMode] = useState<ProjectCardVariant>("grid");
+
+  // Share dialog
+  const [showShare, setShowShare] = useState(false);
+  const [shareCollection, setShareCollectionState] = useState<CollectionSummary | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -158,19 +215,110 @@ export const Collections: React.FC = () => {
     fetchData();
   };
 
-  const handleEdit = async () => {
-    if (!activeCollection || !editName.trim()) return;
-    await updateCollection(activeCollection.id, { name: editName.trim(), description: editDesc.trim() });
-    fetchData();
-    setShowEdit(false);
-  };
-
-  const openEdit = () => {
-    if (!activeCollection) return;
-    setEditName(activeCollection.name);
-    setEditDesc(activeCollection.description);
+  const openEdit = (col?: CollectionSummary) => {
+    const target = col || activeCollection;
+    if (!target) return;
+    setEditingCollection(target);
+    setEditName(target.name);
+    setEditDesc(target.description);
     setShowEdit(true);
   };
+
+  const handleEditSave = async () => {
+    const target = editingCollection || activeCollection;
+    if (!target || !editName.trim()) return;
+    await updateCollection(target.id, { name: editName.trim(), description: editDesc.trim() });
+    fetchData();
+    setShowEdit(false);
+    setEditingCollection(null);
+  };
+
+  const handleShareCollection = (col: CollectionSummary) => {
+    setShareCollectionState(col);
+    setCopied(false);
+    setShowShare(true);
+  };
+
+  const handleCopyLink = async () => {
+    if (!shareCollection) return;
+    const url = `${window.location.origin}/collections/${shareCollection.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+      const input = document.createElement("input");
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  /* ── Shared dialogs rendered in both views ── */
+  const sharedDialogs = (
+    <>
+      {/* Edit dialog */}
+      <Dialog open={showEdit} onOpenChange={(_, data) => { if (!data.open) { setShowEdit(false); setEditingCollection(null); } }}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Edit Collection</DialogTitle>
+            <DialogContent>
+              <div className="abh-collections__form">
+                <Field label="Name" required>
+                  <Input value={editName} onChange={(_, d) => setEditName(d.value)} />
+                </Field>
+                <Field label="Description">
+                  <Textarea value={editDesc} onChange={(_, d) => setEditDesc(d.value)} rows={2} />
+                </Field>
+              </div>
+            </DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" onClick={() => { setShowEdit(false); setEditingCollection(null); }}>Cancel</Button>
+              <Button appearance="primary" onClick={handleEditSave} disabled={!editName.trim()}>Save</Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      {/* Share collection dialog */}
+      <Dialog open={showShare} onOpenChange={(_, data) => { if (!data.open) setShowShare(false); }}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Share Collection</DialogTitle>
+            <DialogContent>
+              <div className="abh-collections__share-content">
+                <p className="abh-collections__share-desc">
+                  Share a link to <strong>{shareCollection?.name}</strong> with others.
+                  {shareCollection && shareCollection.projectIds.length > 0 && (
+                    <> This collection contains {shareCollection.projectIds.length} project{shareCollection.projectIds.length !== 1 ? "s" : ""}.</>
+                  )}
+                </p>
+                <div className="abh-collections__share-link-row">
+                  <Input
+                    readOnly
+                    value={shareCollection ? `${window.location.origin}/collections/${shareCollection.id}` : ""}
+                    style={{ flex: 1 }}
+                    aria-label="Collection link"
+                  />
+                  <Button appearance="primary" onClick={handleCopyLink}>
+                    {copied ? "Copied!" : "Copy link"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" onClick={() => setShowShare(false)}>Done</Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+    </>
+  );
 
   if (!user) {
     return (
@@ -191,6 +339,7 @@ export const Collections: React.FC = () => {
     );
 
     return (
+      <>
       <div className="abh-collections">
         <button className="abh-collections__back" onClick={() => navigate("/collections")}>
           ← Collections
@@ -236,7 +385,8 @@ export const Collections: React.FC = () => {
                 </svg>
               </button>
             </div>
-            <Button appearance="subtle" onClick={openEdit}>Edit</Button>
+            <Button appearance="subtle" onClick={() => openEdit()}>Edit</Button>
+            <Button appearance="subtle" onClick={() => handleShareCollection(activeCollection)}>Share</Button>
             <Button appearance="subtle" onClick={() => handleDelete(activeCollection.id)}>Delete</Button>
           </div>
         </div>
@@ -264,30 +414,9 @@ export const Collections: React.FC = () => {
             ))}
           </div>
         )}
-
-        {/* Edit dialog */}
-        <Dialog open={showEdit} onOpenChange={(_, data) => setShowEdit(data.open)}>
-          <DialogSurface>
-            <DialogBody>
-              <DialogTitle>Edit Collection</DialogTitle>
-              <DialogContent>
-                <div className="abh-collections__form">
-                  <Field label="Name" required>
-                    <Input value={editName} onChange={(_, d) => setEditName(d.value)} />
-                  </Field>
-                  <Field label="Description">
-                    <Textarea value={editDesc} onChange={(_, d) => setEditDesc(d.value)} rows={2} />
-                  </Field>
-                </div>
-              </DialogContent>
-              <DialogActions>
-                <Button appearance="secondary" onClick={() => setShowEdit(false)}>Cancel</Button>
-                <Button appearance="primary" onClick={handleEdit} disabled={!editName.trim()}>Save</Button>
-              </DialogActions>
-            </DialogBody>
-          </DialogSurface>
-        </Dialog>
       </div>
+      {sharedDialogs}
+      </>
     );
   }
 
@@ -335,6 +464,9 @@ export const Collections: React.FC = () => {
               collection={col}
               projects={allProjects}
               onClick={() => navigate(`/collections/${col.id}`)}
+              onDelete={handleDelete}
+              onShare={handleShareCollection}
+              onEdit={openEdit}
             />
           ))}
         </div>
@@ -373,6 +505,8 @@ export const Collections: React.FC = () => {
           </DialogBody>
         </DialogSurface>
       </Dialog>
+
+      {sharedDialogs}
     </div>
   );
 };
