@@ -62,14 +62,18 @@ async function createProject(req: HttpRequest): Promise<HttpResponseInit> {
   return { status: 201, jsonBody: rowToProject(result.recordset[0]) };
 }
 
-/** Map a SQL row (snake_case) to the ProjectDocument shape (camelCase) the frontend expects. */
-export function rowToProject(row: Record<string, unknown>): ProjectDocument {
+/** Map a SQL row (snake_case) to the shape the frontend expects. */
+export function rowToProject(row: Record<string, unknown>): ProjectDocument & { author: { id: string; name: string; avatarUrl?: string } } {
   return {
     id: row.id as string,
     name: row.name as string,
     description: row.description as string,
     authorId: row.author_id as string,
     authorName: row.author_name as string,
+    author: {
+      id: row.author_id as string,
+      name: row.author_name as string,
+    },
     status: row.status as ProjectDocument["status"],
     tags: JSON.parse((row.tags as string) || "[]"),
     layout: row.layout as ProjectDocument["layout"],

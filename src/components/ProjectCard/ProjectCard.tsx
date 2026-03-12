@@ -92,6 +92,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 }) => {
   const [showCollectionDialog, setShowCollectionDialog] = useState(false);
 
+  const author = project.author ?? { id: (project as any).authorId ?? "", name: (project as any).authorName ?? "Unknown" };
+
   const handleClick = () => {
     onClick?.(project.id);
   };
@@ -119,7 +121,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         className={`abh-project-card abh-project-card--compact ${className ?? ""}`}
         onClick={handleClick}
         orientation="horizontal"
-        aria-label={`${project.name} by ${project.author.name}`}
+        aria-label={`${project.name} by ${author.name}`}
       >
         <div className="abh-project-card__compact-thumb">
           {project.thumbnailUrl ? (
@@ -143,7 +145,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               </Badge>
             </div>
             <Caption1 className="abh-project-card__compact-meta">
-              {project.author.name} · {timeAgo}
+              {author.name} · {timeAgo}
             </Caption1>
             <Caption1 className="abh-project-card__compact-desc">
               {project.description}
@@ -199,7 +201,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
     <Card
       className={`abh-project-card ${className ?? ""}`}
       onClick={handleClick}
-      aria-label={`${project.name} by ${project.author.name}`}
+      aria-label={`${project.name} by ${author.name}`}
     >
       {/* Thumbnail */}
       <div className="abh-project-card__thumbnail">
@@ -220,13 +222,13 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       <CardHeader
         image={
           <Avatar
-            name={project.author.name}
-            image={project.author.avatarUrl ? { src: project.author.avatarUrl } : undefined}
+            name={author.name}
+            image={author.avatarUrl ? { src: author.avatarUrl } : undefined}
             size={24}
           />
         }
         header={<Text weight="semibold">{project.name}</Text>}
-        description={<Caption1>{project.author.name} · {timeAgo}</Caption1>}
+        description={<Caption1>{author.name} · {timeAgo}</Caption1>}
       />
 
       {/* Description */}
