@@ -217,6 +217,21 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             <span>No preview</span>
           </div>
         )}
+        {project.previewUrl && (
+          <Button
+            className="abh-project-card__preview-btn"
+            appearance="primary"
+            size="small"
+            icon={<Open20Regular />}
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(project.previewUrl, '_blank', 'noopener,noreferrer');
+            }}
+            aria-label={`Preview ${project.name} in new window`}
+          >
+            Preview
+          </Button>
+        )}
       </div>
 
       {/* Header with title + description */}

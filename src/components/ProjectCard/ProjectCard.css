@@ -19,7 +19,22 @@
 
 .abh-project-card__thumbnail img {
   width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
+}
+
+/* Preview overlay button — appears on hover */
+.abh-project-card__preview-btn {
+  position: absolute;
+  bottom: var(--spacingVerticalS, 8px);
+  right: var(--spacingHorizontalS, 8px);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.abh-project-card__thumbnail:hover .abh-project-card__preview-btn {
+  opacity: 1;
 }
 
 .abh-project-card__thumbnail-placeholder {
