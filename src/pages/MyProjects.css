@@ -381,6 +381,87 @@
   gap: 8px;
 }
 
+/* ── GitHub Repo Discovery ── */
+.abh-my-projects__github-section {
+  margin-bottom: 24px;
+  border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+  border-radius: var(--borderRadiusMedium);
+  padding: 16px;
+  background: var(--colorNeutralBackground2, #fafafa);
+}
+
+.abh-my-projects__github-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.abh-my-projects__github-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--fontSizeBase400);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorNeutralForeground1, #242424);
+}
+
+.abh-my-projects__github-subtitle {
+  display: block;
+  margin-top: 4px;
+  color: var(--colorNeutralForeground2, #616161);
+}
+
+.abh-my-projects__github-loading {
+  padding: 16px 0;
+  text-align: center;
+}
+
+.abh-my-projects__github-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.abh-my-projects__github-repo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px;
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground1, #ffffff);
+  border: 1px solid var(--colorNeutralStroke1, #d1d1d1);
+}
+
+.abh-my-projects__github-repo-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.abh-my-projects__github-repo-desc {
+  color: var(--colorNeutralForeground2, #616161);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 500px;
+}
+
+.abh-my-projects__github-repo-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.abh-my-projects__github-repo-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .abh-my-projects__empty h2,
 .abh-my-projects__empty h3 {
   margin: 0;

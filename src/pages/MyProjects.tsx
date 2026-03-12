@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { listMyProjects, publishProject, listCollections } from "../api/client";
-import { Spinner, Button } from "@fluentui/react-components";
+import { listMyProjects, publishProject, listCollections, searchGitHubReposByTopic, fetchExperimentJson } from "../api/client";
+import type { GitHubRepo, ExperimentJson } from "../api/client";
+import { Spinner, Button, Badge, Caption1, Text } from "@fluentui/react-components";
 import { ProjectCard } from "../components/ProjectCard";
 import type { ProjectSummary, CollectionSummary } from "../components/types";
 import type { ProjectCardVariant } from "../components/ProjectCard";
@@ -13,6 +14,37 @@ const STATUS_OPTIONS = [
   { value: "draft", label: "Draft" },
   { value: "published", label: "Published" },
 ] as const;
+
+/** Convert a GitHub repo (not yet in DB) into a ProjectSummary for display */
+async function githubRepoToSummary(repo: GitHubRepo, username: string): Promise<ProjectSummary> {
+  let meta: ExperimentJson | null = null;
+  try {
+    meta = await fetchExperimentJson(repo.owner.login, repo.name);
+  } catch {
+    // experiment.json is optional
+  }
+
+  return {
+    id: repo.full_name, // use owner/repo as a temporary ID
+    name: meta?.name ?? repo.name,
+    description: meta?.description ?? repo.description ?? "",
+    author: { id: username, name: username, avatarUrl: repo.owner.avatar_url },
+    status: "draft" as const,
+    tags: meta?.tags ?? repo.topics.filter((t) => t !== "vibe-platform"),
+    layout: (meta?.layout as "full-width" | "side-panel") ?? "full-width",
+    pageCount: 0,
+    currentVersion: 0,
+    starCount: repo.stargazers_count,
+    forkCount: repo.forks_count,
+    forkedFrom: null,
+    thumbnailUrl: "",
+    previewUrl: "",
+    repoUrl: repo.html_url,
+    createdAt: repo.created_at,
+    updatedAt: repo.updated_at,
+    publishedAt: null,
+  };
+}
 
 export const MyProjects: React.FC = () => {
   const { user, login } = useAuth();
@@ -26,6 +58,9 @@ export const MyProjects: React.FC = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ProjectCardVariant>("grid");
   const [recentCollections, setRecentCollections] = useState<CollectionSummary[]>([]);
+  const [githubOnlyRepos, setGithubOnlyRepos] = useState<ProjectSummary[]>([]);
+  const [githubLoading, setGithubLoading] = useState(false);
+  const [importingId, setImportingId] = useState<string | null>(null);
 
   const fetchProjects = useCallback(async () => {
     if (!user) return;
@@ -39,6 +74,43 @@ export const MyProjects: React.FC = () => {
       setError(err instanceof Error ? err.message : "Failed to load projects");
     } finally {
       setLoading(false);
+    }
+  }, [user]);
+
+  /** Fetch GitHub repos with `vibe-platform` topic and surface ones not in the DB */
+  const fetchGitHubRepos = useCallback(async (dbProjects: ProjectSummary[]) => {
+    if (!user) return;
+    try {
+      setGithubLoading(true);
+      const repos = await searchGitHubReposByTopic(user.userDetails);
+
+      // Build a set of repo URLs already tracked in the DB
+      const knownRepoUrls = new Set(
+        dbProjects
+          .filter((p) => p.repoUrl)
+          .map((p) => p.repoUrl!.toLowerCase())
+      );
+      // Also match by name to catch projects created without repoUrl
+      const knownNames = new Set(
+        dbProjects.map((p) => p.name.toLowerCase())
+      );
+
+      const untracked = repos.filter(
+        (r) =>
+          !knownRepoUrls.has(r.html_url.toLowerCase()) &&
+          !knownNames.has(r.name.toLowerCase())
+      );
+
+      // Fetch experiment.json for each untracked repo to get metadata
+      const summaries = await Promise.all(
+        untracked.map((repo) => githubRepoToSummary(repo, user.userDetails))
+      );
+
+      setGithubOnlyRepos(summaries);
+    } catch {
+      // Non-critical — don't block the page if GitHub search fails
+    } finally {
+      setGithubLoading(false);
     }
   }, [user]);
 
@@ -57,6 +129,34 @@ export const MyProjects: React.FC = () => {
       setLoading(false);
     }
   }, [user, fetchProjects]);
+
+  // Fetch GitHub repos after DB projects are loaded
+  useEffect(() => {
+    if (!loading && projects.length >= 0 && user) {
+      fetchGitHubRepos(projects);
+    }
+  }, [loading, projects, user, fetchGitHubRepos]);
+
+  /** Import a GitHub-only repo by publishing it to the DB */
+  const handleImportRepo = async (ghProject: ProjectSummary) => {
+    try {
+      setImportingId(ghProject.id);
+      const result = await publishProject(ghProject.id, true, {
+        name: ghProject.name,
+        description: ghProject.description,
+        tags: ghProject.tags,
+        layout: ghProject.layout,
+        repoUrl: ghProject.repoUrl,
+      });
+      // Move from GitHub-only list into the main projects list
+      setGithubOnlyRepos((prev) => prev.filter((r) => r.id !== ghProject.id));
+      setProjects((prev) => [result, ...prev]);
+    } catch (err) {
+      console.error("Failed to import repo", err);
+    } finally {
+      setImportingId(null);
+    }
+  };
 
   const handleOpenProject = (id: string) => {
     const project = projects.find((p) => p.id === id);
@@ -298,6 +398,68 @@ export const MyProjects: React.FC = () => {
         </div>
       ) : (
         <>
+          {/* GitHub Repos — not yet imported */}
+          {(githubOnlyRepos.length > 0 || githubLoading) && (
+            <div className="abh-my-projects__github-section">
+              <div className="abh-my-projects__github-header">
+                <div>
+                  <h3 className="abh-my-projects__github-title">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    GitHub Repos
+                  </h3>
+                  <Caption1 className="abh-my-projects__github-subtitle">
+                    Repos with the <code className="abh-my-projects__topic-badge">vibe-platform</code> topic not yet imported
+                  </Caption1>
+                </div>
+              </div>
+              {githubLoading ? (
+                <div className="abh-my-projects__github-loading">
+                  <Spinner size="tiny" label="Scanning GitHub repos…" />
+                </div>
+              ) : (
+                <div className="abh-my-projects__github-list">
+                  {githubOnlyRepos.map((repo) => (
+                    <div key={repo.id} className="abh-my-projects__github-repo">
+                      <div className="abh-my-projects__github-repo-info">
+                        <Text weight="semibold">{repo.name}</Text>
+                        {repo.description && (
+                          <Caption1 className="abh-my-projects__github-repo-desc">{repo.description}</Caption1>
+                        )}
+                        {repo.tags.length > 0 && (
+                          <div className="abh-my-projects__github-repo-tags">
+                            {repo.tags.slice(0, 4).map((tag) => (
+                              <Badge key={tag} appearance="outline" size="small">{tag}</Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="abh-my-projects__github-repo-actions">
+                        <Button
+                          appearance="subtle"
+                          size="small"
+                          onClick={() => window.open(repo.repoUrl, '_blank', 'noopener,noreferrer')}
+                          aria-label={`View ${repo.name} on GitHub`}
+                        >
+                          View
+                        </Button>
+                        <Button
+                          appearance="primary"
+                          size="small"
+                          disabled={importingId === repo.id}
+                          onClick={() => handleImportRepo(repo)}
+                        >
+                          {importingId === repo.id ? "Importing…" : "Import"}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Recent Collections */}
           {recentCollections.length > 0 && (
             <div className="abh-my-projects__recent-collections">
