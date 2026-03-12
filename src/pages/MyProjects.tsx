@@ -391,8 +391,14 @@ export const MyProjects: React.FC = () => {
               Clear all filters
             </Button>
           ) : (
-            <Button appearance="primary" onClick={() => navigate("/new")}>
-              New Project
+            <Button
+              appearance="primary"
+              as="a"
+              href="https://github.com/unthinkmedia/AzureBuilderPlayground"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Start Experiment
             </Button>
           )}
         </div>
