@@ -12,8 +12,6 @@ interface PublishBody {
     description?: string;
     tags?: string[];
     layout?: "full-width" | "side-panel";
-    thumbnailUrl?: string;
-    previewUrl?: string;
     repoUrl?: string;
   };
 }
@@ -60,14 +58,12 @@ async function handlePublish(req: HttpRequest, _context: InvocationContext): Pro
         .input("tags", JSON.stringify(tags))
         .input("layout", layout)
         .input("status", newStatus)
-        .input("thumbnailUrl", body.project.thumbnailUrl ?? "")
-        .input("previewUrl", body.project.previewUrl ?? "")
         .input("createdAt", now)
         .input("updatedAt", now)
         .input("publishedAt", now)
         .query(`
-          INSERT INTO projects (id, name, description, author_id, author_name, tags, layout, status, thumbnail_url, preview_url, created_at, updated_at, published_at)
-          VALUES (@id, @name, @description, @authorId, @authorName, @tags, @layout, @status, @thumbnailUrl, @previewUrl, @createdAt, @updatedAt, @publishedAt)
+          INSERT INTO projects (id, name, description, author_id, author_name, tags, layout, status, created_at, updated_at, published_at)
+          VALUES (@id, @name, @description, @authorId, @authorName, @tags, @layout, @status, @createdAt, @updatedAt, @publishedAt)
         `);
     } else {
       const project = result.recordset[0];

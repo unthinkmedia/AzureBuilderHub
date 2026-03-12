@@ -46,7 +46,7 @@ export async function updateProjectMetadata(
 export async function publishProject(
   id: string,
   publish: boolean,
-  project?: Partial<Pick<ProjectSummary, "name" | "description" | "tags" | "layout" | "thumbnailUrl" | "previewUrl" | "repoUrl">>
+  project?: Partial<Pick<ProjectSummary, "name" | "description" | "tags" | "layout" | "repoUrl">>
 ): Promise<ProjectSummary> {
   return apiFetch<ProjectSummary>(`/projects/${encodeURIComponent(id)}/publish`, {
     method: "PUT",
@@ -233,8 +233,6 @@ export interface ExperimentJson {
   description?: string;
   tags?: string[];
   layout?: string;
-  thumbnailUrl?: string;
-  previewUrl?: string;
   status?: "draft" | "published" | "archived";
 }
 

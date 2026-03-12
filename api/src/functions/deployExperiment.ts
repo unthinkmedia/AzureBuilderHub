@@ -92,16 +92,10 @@ async function handleDeploy(req: HttpRequest, _context: InvocationContext): Prom
       projectId = project.id as string;
       currentVersion = (project.current_version as number) + 1;
 
-      // Preview and thumbnail URLs are derived from projectId
-      const previewUrl = `/api/projects/${projectId}/preview/`;
-      const thumbnailUrl = `/api/projects/${projectId}/preview/thumbnail.png`;
-
       const r2 = await query();
       await r2
         .input("id", projectId)
         .input("description", body.description?.trim() ?? project.description)
-        .input("previewUrl", previewUrl)
-        .input("thumbnailUrl", thumbnailUrl)
         .input("tags", JSON.stringify(tags.length ? tags : JSON.parse((project.tags as string) || "[]")))
         .input("layout", layout)
         .input("pageCount", pageCount)
@@ -112,8 +106,6 @@ async function handleDeploy(req: HttpRequest, _context: InvocationContext): Prom
         .query(`
           UPDATE projects SET
             description = @description,
-            preview_url = @previewUrl,
-            thumbnail_url = @thumbnailUrl,
             tags = @tags,
             layout = @layout,
             page_count = @pageCount,
@@ -128,9 +120,6 @@ async function handleDeploy(req: HttpRequest, _context: InvocationContext): Prom
       projectId = randomUUID();
       currentVersion = 1;
 
-      const previewUrl = `/api/projects/${projectId}/preview/`;
-      const thumbnailUrl = `/api/projects/${projectId}/preview/thumbnail.png`;
-
       const r2 = await query();
       await r2
         .input("id", projectId)
@@ -141,16 +130,14 @@ async function handleDeploy(req: HttpRequest, _context: InvocationContext): Prom
         .input("tags", JSON.stringify(tags))
         .input("layout", layout)
         .input("pageCount", pageCount)
-        .input("previewUrl", previewUrl)
-        .input("thumbnailUrl", thumbnailUrl)
         .input("currentVersion", currentVersion)
         .input("status", "published")
         .input("createdAt", now)
         .input("updatedAt", now)
         .input("publishedAt", now)
         .query(`
-          INSERT INTO projects (id, name, description, author_id, author_name, tags, layout, page_count, preview_url, thumbnail_url, current_version, status, created_at, updated_at, published_at)
-          VALUES (@id, @name, @description, @authorId, @authorName, @tags, @layout, @pageCount, @previewUrl, @thumbnailUrl, @currentVersion, @status, @createdAt, @updatedAt, @publishedAt)
+          INSERT INTO projects (id, name, description, author_id, author_name, tags, layout, page_count, current_version, status, created_at, updated_at, published_at)
+          VALUES (@id, @name, @description, @authorId, @authorName, @tags, @layout, @pageCount, @currentVersion, @status, @createdAt, @updatedAt, @publishedAt)
         `);
     }
 

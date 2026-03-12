@@ -89,8 +89,8 @@ export function rowToProject(row: Record<string, unknown>): ProjectDocument & { 
             authorName: row.forked_from_author_name as string,
           }
         : null,
-    thumbnailUrl: row.thumbnail_url as string,
-    previewUrl: row.preview_url as string,
+    thumbnailUrl: `/api/projects/${row.id}/preview/thumbnail.png`,
+    previewUrl: `/api/projects/${row.id}/preview/`,
     createdAt: (row.created_at as Date)?.toISOString?.() ?? (row.created_at as string),
     updatedAt: (row.updated_at as Date)?.toISOString?.() ?? (row.updated_at as string),
     publishedAt: row.published_at ? ((row.published_at as Date)?.toISOString?.() ?? (row.published_at as string)) : null,

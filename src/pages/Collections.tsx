@@ -99,9 +99,12 @@ const CollectionCard: React.FC<{
         <div className="abh-collection-card__thumbnails">
           {thumbProjects.map((p) => (
             <div key={p.id} className="abh-collection-card__thumb">
-              {p.thumbnailUrl ? (
-                <img src={p.thumbnailUrl} alt={p.name} loading="lazy" />
-              ) : null}
+              <img
+                src={p.thumbnailUrl}
+                alt={p.name}
+                loading="lazy"
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+              />
             </div>
           ))}
           {remaining > 0 && (

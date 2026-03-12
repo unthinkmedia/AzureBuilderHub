@@ -110,10 +110,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
   const timeAgo = getRelativeTime(project.updatedAt);
 
-  const hasOpenInBrowser = !!project.previewUrl;
-  const hasMenuActions = onClick || onDelete || onDuplicate || onShare || onOpenInVSCode || onOpenInCopilotCLI || onPublishToggle || showAddToCollection || hasOpenInBrowser;
-
   const isPublished = project.status === "published";
+  const hasDeployedContent = project.currentVersion > 0;
+  const hasMenuActions = onClick || onDelete || onDuplicate || onShare || onOpenInVSCode || onOpenInCopilotCLI || onPublishToggle || showAddToCollection || hasDeployedContent;
 
   if (variant === "compact") {
     return (
@@ -124,8 +123,17 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         aria-label={`${project.name} by ${author.name}`}
       >
         <div className="abh-project-card__compact-thumb">
-          {project.thumbnailUrl ? (
-            <img src={project.thumbnailUrl} alt={`Preview of ${project.name}`} loading="lazy" />
+          {hasDeployedContent ? (
+            <img
+              src={project.thumbnailUrl}
+              alt={`Preview of ${project.name}`}
+              loading="lazy"
+              onError={(e) => {
+                const target = e.currentTarget;
+                target.style.display = "none";
+                target.parentElement?.classList.add("abh-project-card__thumbnail-placeholder");
+              }}
+            />
           ) : (
             <div className="abh-project-card__thumbnail-placeholder" aria-hidden="true">
               <span>No preview</span>
@@ -206,18 +214,23 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
     >
       {/* Thumbnail */}
       <div className="abh-project-card__thumbnail">
-        {project.thumbnailUrl ? (
+        {hasDeployedContent ? (
           <img
             src={project.thumbnailUrl}
             alt={`Preview of ${project.name}`}
             loading="lazy"
+            onError={(e) => {
+              const target = e.currentTarget;
+              target.style.display = "none";
+              target.parentElement?.classList.add("abh-project-card__thumbnail-placeholder");
+            }}
           />
         ) : (
           <div className="abh-project-card__thumbnail-placeholder" aria-hidden="true">
             <span>No preview</span>
           </div>
         )}
-        {project.previewUrl && (
+        {hasDeployedContent && (
           <Button
             className="abh-project-card__preview-btn"
             appearance="primary"
@@ -316,10 +329,10 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                       View details
                     </MenuItem>
                   )}
-                  {onClick && (hasOpenInBrowser || onPublishToggle || showAddToCollection) && (
+                  {onClick && (hasDeployedContent || onPublishToggle || showAddToCollection) && (
                     <MenuDivider />
                   )}
-                  {hasOpenInBrowser && (
+                  {hasDeployedContent && (
                     <MenuItem
                       icon={<Open20Regular />}
                       onClick={(e) => {
@@ -330,7 +343,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                       Open in Browser
                     </MenuItem>
                   )}
-                  {hasOpenInBrowser && (onPublishToggle || showAddToCollection) && (
+                  {hasDeployedContent && (onPublishToggle || showAddToCollection) && (
                     <MenuDivider />
                   )}
                   {onPublishToggle && (

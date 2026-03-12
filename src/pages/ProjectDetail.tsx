@@ -46,7 +46,6 @@ import {
   Open24Regular,
   Copy20Regular,
   Globe24Regular,
-  Warning20Regular,
 } from "@fluentui/react-icons";
 import "./ProjectDetail.css";
 
@@ -268,7 +267,7 @@ export const ProjectDetail: React.FC = () => {
                 Open on GitHub
               </Button>
             )}
-            {project.previewUrl && (
+            {project.currentVersion > 0 && (
               <Button
                 appearance="secondary"
                 size="small"
@@ -393,7 +392,7 @@ export const ProjectDetail: React.FC = () => {
           <Globe24Regular />
           Preview
         </h3>
-        {project.previewUrl ? (
+        {project.currentVersion > 0 ? (
           <div className="abh-detail__preview-frame-wrapper">
             <iframe
               src={project.previewUrl}
@@ -404,12 +403,10 @@ export const ProjectDetail: React.FC = () => {
           </div>
         ) : (
           <div className="abh-detail__no-preview">
-            <Warning20Regular />
             <div className="abh-detail__no-preview-content">
               <span className="abh-detail__no-preview-title">No preview available</span>
               <Caption1>
-                Publish your HTML to a static host (e.g. GitHub Pages or Azure Static Web Apps),
-                then add <code>previewUrl</code> to your <code>experiment.json</code> to see a live preview here.
+                Deploy your project to see a live preview here.
               </Caption1>
             </div>
           </div>

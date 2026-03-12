@@ -37,8 +37,8 @@ function repoToProject(
     starCount: repo.stargazers_count,
     forkCount: repo.forks_count,
     forkedFrom: null,
-    thumbnailUrl: experiment?.thumbnailUrl || "",
-    previewUrl: experiment?.previewUrl || "",
+    thumbnailUrl: "",
+    previewUrl: "",
     repoUrl: repo.html_url,
     createdAt: repo.created_at,
     updatedAt: repo.updated_at,
@@ -115,8 +115,6 @@ export const MyProjects: React.FC = () => {
         description: project.description,
         tags: project.tags,
         layout: project.layout,
-        thumbnailUrl: project.thumbnailUrl,
-        previewUrl: project.previewUrl,
         repoUrl: project.repoUrl,
       } : undefined);
       setProjects((prev) =>
