@@ -46,6 +46,25 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           >
             Community
           </NavLink>
+          <span className="abh-shell__nav-divider" aria-hidden="true" />
+          <a
+            href="https://gentle-smoke-0409f8010.1.azurestaticapps.net/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="abh-shell__link abh-shell__external-link"
+          >
+            Storybook
+            <OpenRegular className="abh-shell__external-icon" />
+          </a>
+          <a
+            href="https://github.com/unthinkmedia/AzureBuilderPlayground"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="abh-shell__link abh-shell__external-link"
+          >
+            Start Experiment
+            <OpenRegular className="abh-shell__external-icon" />
+          </a>
         </nav>
         <div className="abh-shell__actions">
           {user ? (

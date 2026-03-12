@@ -6,6 +6,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:full": "concurrently -n azurite,api,vite -c blue,green,yellow \"npm run dev:azurite\" \"npm run dev:api\" \"npm run dev\"",
+    "dev:azurite": "npx azurite --silent --location .azurite --debug .azurite/debug.log",
+    "dev:api": "cd api && npm run build && func start",
+    "dev:mock": "AZURE_FUNCTIONS_URL= vite",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },

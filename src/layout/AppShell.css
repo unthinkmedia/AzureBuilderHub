@@ -68,6 +68,25 @@
   flex-shrink: 0;
 }
 
+/* Nav divider & external links */
+.abh-shell__nav-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--colorNeutralStroke2);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.abh-shell__external-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.abh-shell__external-icon {
+  font-size: 12px;
+}
+
 .abh-shell__user {
   display: flex;
   align-items: center;

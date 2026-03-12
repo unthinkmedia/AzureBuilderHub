@@ -1,50 +1,18 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { searchGitHubReposByTopic, fetchExperimentJson, publishProject, listCollections } from "../api/client";
-import type { GitHubRepo, ExperimentJson } from "../api/client";
+import { listMyProjects, publishProject, listCollections } from "../api/client";
 import { Spinner, Button } from "@fluentui/react-components";
 import { ProjectCard } from "../components/ProjectCard";
 import type { ProjectSummary, CollectionSummary } from "../components/types";
 import type { ProjectCardVariant } from "../components/ProjectCard";
 import "./MyProjects.css";
 
-const LAYOUT_OPTIONS = [
-  { value: "", label: "All layouts" },
-  { value: "full-width", label: "Full width" },
-  { value: "side-panel", label: "Side panel" },
+const STATUS_OPTIONS = [
+  { value: "", label: "All statuses" },
+  { value: "draft", label: "Draft" },
+  { value: "published", label: "Published" },
 ] as const;
-
-/** Map a GitHub repo + optional experiment.json into a ProjectSummary for the card */
-function repoToProject(
-  repo: GitHubRepo,
-  experiment: ExperimentJson | null
-): ProjectSummary {
-  return {
-    id: String(repo.id),
-    name: experiment?.name || repo.name,
-    description: experiment?.description || repo.description || "",
-    author: {
-      name: repo.owner.login,
-      id: repo.owner.login,
-      avatarUrl: repo.owner.avatar_url,
-    },
-    status: experiment?.status ?? "draft",
-    tags: experiment?.tags ?? repo.topics.filter((t) => t !== "vibe-platform"),
-    layout: (experiment?.layout as "full-width" | "side-panel") || "full-width",
-    pageCount: 1,
-    currentVersion: 1,
-    starCount: repo.stargazers_count,
-    forkCount: repo.forks_count,
-    forkedFrom: null,
-    thumbnailUrl: "",
-    previewUrl: "",
-    repoUrl: repo.html_url,
-    createdAt: repo.created_at,
-    updatedAt: repo.updated_at,
-    publishedAt: repo.updated_at,
-  };
-}
 
 export const MyProjects: React.FC = () => {
   const { user, login } = useAuth();
@@ -54,7 +22,7 @@ export const MyProjects: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedLayout, setSelectedLayout] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ProjectCardVariant>("grid");
   const [recentCollections, setRecentCollections] = useState<CollectionSummary[]>([]);
@@ -65,20 +33,10 @@ export const MyProjects: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Search GitHub for repos tagged vibe-platform owned by signed-in user
-      const repos = await searchGitHubReposByTopic(user.userDetails);
-
-      // Enrich each repo with experiment.json metadata (best-effort)
-      const enriched = await Promise.all(
-        repos.map(async (repo) => {
-          const experiment = await fetchExperimentJson(repo.owner.login, repo.name);
-          return repoToProject(repo, experiment);
-        })
-      );
-
-      setProjects(enriched);
+      const data = await listMyProjects();
+      setProjects(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load projects from GitHub");
+      setError(err instanceof Error ? err.message : "Failed to load projects");
     } finally {
       setLoading(false);
     }
@@ -136,21 +94,21 @@ export const MyProjects: React.FC = () => {
     return Array.from(set).sort();
   }, [projects]);
 
-  const activeFilterCount = selectedTags.length + (selectedLayout ? 1 : 0);
+  const activeFilterCount = selectedTags.length + (selectedStatus ? 1 : 0);
 
   const toggleTag = (tag: string) =>
     setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
 
   const clearAllFilters = () => {
     setSelectedTags([]);
-    setSelectedLayout("");
+    setSelectedStatus("");
     setSearch("");
   };
 
   const filtered = projects.filter((p) => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()))) return false;
     if (selectedTags.length > 0 && !selectedTags.some((t) => p.tags.includes(t))) return false;
-    if (selectedLayout && p.layout !== selectedLayout) return false;
+    if (selectedStatus && p.status !== selectedStatus) return false;
     return true;
   });
 
@@ -175,8 +133,7 @@ export const MyProjects: React.FC = () => {
         <div>
           <h1 className="abh-my-projects__title">My Projects</h1>
           <p className="abh-my-projects__subtitle">
-            {projects.length} repo{projects.length !== 1 ? "s" : ""} tagged{" "}
-            <code className="abh-my-projects__topic-badge">vibe-platform</code>
+            {projects.length} project{projects.length !== 1 ? "s" : ""}
           </p>
         </div>
         <div className="abh-my-projects__controls">
@@ -272,14 +229,14 @@ export const MyProjects: React.FC = () => {
             </div>
           )}
           <div className="abh-my-projects__filter-group">
-            <h4 className="abh-my-projects__filter-heading">Layout</h4>
+            <h4 className="abh-my-projects__filter-heading">Status</h4>
             <div className="abh-my-projects__filter-chips">
-              {LAYOUT_OPTIONS.map((opt) => (
+              {STATUS_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
-                  className={`abh-my-projects__chip ${selectedLayout === opt.value ? "abh-my-projects__chip--active" : ""}`}
-                  onClick={() => setSelectedLayout(opt.value)}
-                  aria-pressed={selectedLayout === opt.value}
+                  className={`abh-my-projects__chip ${selectedStatus === opt.value ? "abh-my-projects__chip--active" : ""}`}
+                  onClick={() => setSelectedStatus(opt.value)}
+                  aria-pressed={selectedStatus === opt.value}
                 >
                   {opt.label}
                 </button>
@@ -298,10 +255,10 @@ export const MyProjects: React.FC = () => {
               <button aria-label={`Remove ${t} filter`} onClick={() => toggleTag(t)}>×</button>
             </span>
           ))}
-          {selectedLayout && (
+          {selectedStatus && (
             <span className="abh-my-projects__active-chip">
-              {selectedLayout}
-              <button aria-label="Remove layout filter" onClick={() => setSelectedLayout("")}>×</button>
+              {selectedStatus}
+              <button aria-label="Remove status filter" onClick={() => setSelectedStatus("")}>×</button>
             </span>
           )}
         </div>
@@ -310,7 +267,7 @@ export const MyProjects: React.FC = () => {
       {/* Content */}
       {loading ? (
         <div className="abh-my-projects__loading">
-          <Spinner size="medium" label="Searching GitHub repos…" />
+          <Spinner size="medium" label="Loading projects…" />
         </div>
       ) : error ? (
         <div className="abh-my-projects__error">
@@ -323,19 +280,19 @@ export const MyProjects: React.FC = () => {
             <rect x="8" y="12" width="32" height="24" rx="3" stroke="#d1d1d1" strokeWidth="2" fill="none" />
             <path d="M16 22h16M16 28h10" stroke="#d1d1d1" strokeWidth="2" strokeLinecap="round" />
           </svg>
-          <h3>No repos found</h3>
+          <h3>No projects yet</h3>
           <p>
             {search || activeFilterCount > 0
-              ? "No repos match your current filters. Try adjusting your search."
-              : `Tag a GitHub repo with the topic "vibe-platform" to see it here.`}
+              ? "No projects match your current filters. Try adjusting your search."
+              : "Create your first project to get started."}
           </p>
           {(activeFilterCount > 0 || search) ? (
             <Button appearance="secondary" onClick={() => { clearAllFilters(); }}>
               Clear all filters
             </Button>
           ) : (
-            <Button appearance="primary" as="a" href="https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics" target="_blank" rel="noopener">
-              Learn about GitHub topics
+            <Button appearance="primary" onClick={() => navigate("/new")}>
+              New Project
             </Button>
           )}
         </div>
