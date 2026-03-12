@@ -198,6 +198,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   }
 
   return (
+    <>
     <Card
       className={`abh-project-card ${className ?? ""}`}
       onClick={handleClick}
@@ -395,6 +396,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         </div>
       </CardFooter>
 
+    </Card>
+
       {showAddToCollection && (
         <AddToCollectionDialog
           projectId={project.id}
@@ -402,7 +405,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           onClose={() => setShowCollectionDialog(false)}
         />
       )}
-    </Card>
+    </>
   );
 };
 
