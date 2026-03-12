@@ -1,5 +1,4 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { requireUser, AuthError } from "../shared/auth.js";
 import { query } from "../shared/db.js";
 import { getExperimentsContainer, getMimeType } from "../shared/storage.js";
 
@@ -9,13 +8,12 @@ import { getExperimentsContainer, getMimeType } from "../shared/storage.js";
  * GET /api/projects/{id}/preview
  * GET /api/projects/{id}/preview/{*path}
  *
- * Requires SWA authentication (Microsoft employees only).
+ * Public endpoint (no auth required).
  * Looks up the project's current version, maps the request to a blob,
  * and streams the file back with correct Content-Type.
  */
 async function handlePreview(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
   try {
-    const user = await requireUser(req);
     const projectId = req.params.id;
     if (!projectId) {
       return { status: 400, body: "Missing project ID" };
@@ -77,9 +75,6 @@ async function handlePreview(req: HttpRequest, _context: InvocationContext): Pro
       body,
     };
   } catch (err) {
-    if (err instanceof AuthError) {
-      return { status: err.statusCode, body: err.message };
-    }
     const msg = err instanceof Error ? err.message : String(err);
     return { status: 500, body: `Preview failed: ${msg}` };
   }
